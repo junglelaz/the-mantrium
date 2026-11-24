@@ -82,8 +82,9 @@ export function createNavigation(polygons,temples){
    const h=crossing?tunnelHeight(crossing,x,z):id<2?.15:ribbonHeight(id-2,x,z);
    hs.push(api.heightTransform?api.heightTransform(x,z,h,id):h);
   }
-  // The only open-air exceptions: bounded approach areas at the two polar temples.
-  if((x/11)**2+((z+31)/9)**2<=1||(x/11)**2+((z-31)/9)**2<=1)hs.push(.15);
+  // The polar approaches supply a floor only in open space. Where an actual
+  // deck exists, keep its height through the descent and under the bridge.
+  if(!hs.length && ((x/11)**2+((z+31)/9)**2<=1||(x/11)**2+((z-31)/9)**2<=1))hs.push(.15);
   for(const t of temples)if(Math.abs(x-t.x)+Math.abs(z-t.z)<=(Math.abs(t.x)>20?6.25:5.05)/Math.SQRT2)hs.push(templeFloorHeight(t,x,z));
   return hs;
  }
@@ -101,10 +102,34 @@ export function createNavigation(polygons,temples){
   for(const o of api.orbs){if(o.owner===api.movingOrb)continue;const dy=h+FLOAT_HEIGHT-o.y;if(Math.hypot(x-o.x,z-o.z,dy)<ORB_RADIUS+o.radius+.06)return null;}
   return h;
  }
+ // Resolve angled input along the stair, including where its sides taper.
+ function slideOnStair(state,dx,dz){
+  for(const c of crossings){
+   const {along,across}=coordinates(c,state.x,state.z);
+   if(Math.abs(along)>stairStart(c,along)+STAIR_COUNT*STAIR_RUN ||
+      Math.abs(across)<1.5 || Math.abs(across)>UNDERPASS_WIDTH/2)continue;
+   const floor=lowerProfile(c,along);
+   const h=api.heightTransform?api.heightTransform(state.x,state.z,floor,100+c.id):floor;
+   if(Math.abs(state.height-h)>.2)continue;
+   const side=Math.sign(across);
+   if(side*(-dx*c.dz+dz*c.dx)<=0)continue;
+   const forward=dx*c.dx+dz*c.dz;
+   if(Math.abs(forward)<.35*Math.hypot(dx,dz))return true;
+   const x=state.x+c.dx*forward,z=state.z+c.dz*forward;
+   // A small inward component handles the join between nonparallel edges.
+   for(const inward of [0,.08*Math.abs(forward),.2*Math.abs(forward)]){
+    const nextX=x+side*c.dz*inward,nextZ=z-side*c.dx*inward;
+    const nextHeight=valid(nextX,nextZ,state.height);
+    if(nextHeight!==null){state.x=nextX;state.z=nextZ;state.height=nextHeight;return true;}
+   }
+  }
+  return false;
+ }
  function move(state,dx,dz,owner=null){api.movingOrb=owner;const count=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.12));dx/=count;dz/=count;
   for(let i=0;i<count;i++){
    let h=valid(state.x+dx,state.z+dz,state.height);
    if(h!==null){state.x+=dx;state.z+=dz;state.height=h;continue}
+   if(owner==='player' && slideOnStair(state,dx,dz))continue;
    // Slide along path edges and obstacle faces without crossing them.
    h=valid(state.x+dx,state.z,state.height);if(h!==null){state.x+=dx;state.height=h}
    h=valid(state.x,state.z+dz,state.height);if(h!==null){state.z+=dz;state.height=h}
