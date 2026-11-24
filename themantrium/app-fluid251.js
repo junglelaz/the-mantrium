@@ -338,9 +338,40 @@ function playSanctumOpening(){
   setTimeout(()=>{notice.style.removeProperty('visibility');notice.style.removeProperty('z-index');},5600);
  };
 }
+let visitorView=null;
+const visitorPose=new T.PerspectiveCamera(),visitorOffset=new T.Vector3(0,7,9);
+function showVisitor(peer){
+ if(visitorView || !entered || panel.open || quickNav.active || interiors.state.index>=0 || templeTransfer || inhabitants.chatting)return;
+ velocity.set(0,0);
+ visitorView={peer,started:performance.now(),focus:peer.mesh.position.clone(),returnAt:null,returnWeight:1};
+}
+function updateVisitorView(now){
+ const view=visitorView;
+ if(!view)return;
+ if(!entered || quickNav.active || quickNav.open || homeReturn || panel.open || templeTransfer || interiors.state.index>=0 || secret.state.phase==='falling' || secret.state.phase==='chamber'){
+  visitorView=null;return;
+ }
+ const travel=reduced?0:1000,elapsed=now-view.started;
+ let weight=travel?T.MathUtils.smoothstep(elapsed,0,travel):1;
+ if(view.returnAt===null){
+  if(view.peer.alive && view.peer.mesh.visible)view.focus.copy(view.peer.mesh.position);
+  if(!view.peer.alive || !view.peer.mesh.visible || elapsed>=travel+3000){
+   view.returnAt=Math.min(now,view.started+travel+3000);view.returnWeight=weight;
+  }
+ }
+ if(view.returnAt!==null){
+  weight=travel?view.returnWeight*(1-T.MathUtils.smoothstep(now-view.returnAt,0,travel)):0;
+  if(weight<=0){visitorView=null;return;}
+ }
+ visitorPose.position.copy(view.focus).add(visitorOffset);
+ visitorPose.lookAt(view.focus);
+ camera.position.lerp(visitorPose.position,weight);
+ camera.quaternion.slerp(visitorPose.quaternion,weight);
+ camera.updateMatrixWorld();
+}
 const presence=createPresence(scene,navigation,()=>{
  secret.unlock(true);playSanctumOpening();
-});
+},showVisitor);
 navigation.heightTransform=(x,z,y,id)=>[9,102,106].includes(id)?secret.height(x,z,y,id):y;
 const mobileView=matchMedia('(any-pointer:coarse), (max-width:650px)').matches||navigator.maxTouchPoints>0;
 let zoomTarget=1,zoomBlend=zoomTarget;
@@ -524,7 +555,7 @@ const target=new T.Vector3(),look=new T.Vector3();function animate(now){requestA
  secret.update(dt,player);if(secret.state.phase!==lastSecretPhase){if(secret.state.phase==='falling')score.cue('fall');lastSecretPhase=secret.state.phase;}navigation.orbs=interiors.state.index<0&&secret.state.phase!=='chamber'?[...inhabitants.bodies,...presence.bodies,{owner:'player',x:player.x,z:player.z,y:player.height+FLOAT_HEIGHT,radius:.65}]:[];updateTempleTransfer(dt);interiors.update(dt,reduced);if(homePending&&interiors.state.index<0)returnToOpening();if(score.gains)score.setInterior(interiors.state.index,interiors.state.blend);
 if(secret.state.phase==='lowering'||secret.state.phase==='opening'){const heights=navigation.surfaces(player.x,player.z);if(heights.length)player.height=heights.sort((a,b)=>Math.abs(a-player.height)-Math.abs(b-player.height))[0];}
 document.body.classList.toggle('secret-interior',secret.state.phase==='chamber');if(secret.state.phase==='chamber'){orb.visible=true;checkTemple();}
-if(visited){const elapsed=t-pigmentAt;orbMat.uniforms.pigment.value=T.MathUtils.clamp(elapsed/.8,0,1);orbMat.uniforms.colourCount.value=Math.max(0,journey.completed.size-1)+orbMat.uniforms.pigment.value}if(!reduced){jets.forEach(({p,curve,offset})=>p.position.copy(curve.getPoint((t*.5+offset)%1)));portals.forEach(portal=>portal.material.opacity=.13+Math.sin(t)*.035)}if(entered&&!panel.open&&!quickNav.active&&!templeTransfer&&!secret.exiting&&!document.body.classList.contains('birth-reading-active')){let x=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0)+stick.x,z=(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0)+stick.y;const input=frameInput.set(x,z).clampLength(0,1);input.multiplyScalar(7);
+if(visited){const elapsed=t-pigmentAt;orbMat.uniforms.pigment.value=T.MathUtils.clamp(elapsed/.8,0,1);orbMat.uniforms.colourCount.value=Math.max(0,journey.completed.size-1)+orbMat.uniforms.pigment.value}if(!reduced){jets.forEach(({p,curve,offset})=>p.position.copy(curve.getPoint((t*.5+offset)%1)));portals.forEach(portal=>portal.material.opacity=.13+Math.sin(t)*.035)}if(entered&&!visitorView&&!panel.open&&!quickNav.active&&!templeTransfer&&!secret.exiting&&!document.body.classList.contains('birth-reading-active')){let x=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0)+stick.x,z=(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0)+stick.y;const input=frameInput.set(x,z).clampLength(0,1);input.multiplyScalar(7);
 if(stickPointer!==null)velocity.copy(input);
 else velocity.lerp(input,1-Math.exp(-18*dt));if(interiors.state.index>=0){interiors.move(velocity.x*dt,velocity.y*dt);}else if(secret.state.phase==='chamber'){secret.move(player,velocity.x*dt,velocity.y*dt);}
 else if(secret.state.phase!=='falling'){if(templeAt(player.x,player.z,player.height)<0)lastHallPosition={...player};if(velocity.lengthSq()>1e-12 || secret.state.phase==='lowering'||secret.state.phase==='opening')navigation.move(player,velocity.x*dt,velocity.y*dt,'player');}orb.position.x=player.x;orb.position.z=player.z;checkTemple()}if(secret.exiting){orb.position.x=player.x;orb.position.z=player.z;visualHeight=player.height;velocity.set(0,0);keys.clear();stick.set(0,0);}
@@ -544,10 +575,11 @@ camera.position.z+=smoothedTilt.y*.08*(1-tiltScale);
 hoverLook.x+=smoothedTilt.x*.12*(1-tiltScale);hoverLook.z+=smoothedTilt.y*.08*(1-tiltScale);
 if(!templeTransfer)camera.lookAt(hoverLook);
 const menuActive=quickNav.update(dt,reduced);
+updateVisitorView(now);
 secret.updateLabel(camera);if(secret.exiting||secret.state.justReturned){orbMat.uniforms.glitch.value=reduced?0:secret.glitch;orb.visible=!secret.orbHidden;}
 const speechZoomLimit=mobileView?.65:.8;
 const speechCameraSettled=(reduced||now-descent>=4500)&&!quickNav.active&&!quickNav.open&&!homeReturn&&!templeTransfer&&Math.abs(zoomBlend-zoomTarget)<.002&&(secret.state.phase!=='chamber'||secret.state.arrival>=1.8);
-const muteSpeech=secret.exiting||!entered||!speechCameraSettled||zoomBlend<speechZoomLimit||zoomTarget<speechZoomLimit;
+const muteSpeech=!!visitorView||secret.exiting||!entered||!speechCameraSettled||zoomBlend<speechZoomLimit||zoomTarget<speechZoomLimit;
 if(document.body.classList.contains('speech-muted')!==muteSpeech)document.body.classList.toggle('speech-muted',muteSpeech);
 fireflies.update(dt,t,orb.position,interiors.state.index<0&&!secret.fade&&secret.state.phase!=='chamber',reduced,innerHeight*renderer.getPixelRatio());
 {const body=navigation.orbs.find(o=>o.owner==='player');if(body){body.x=player.x;body.z=player.z;body.y=player.height+FLOAT_HEIGHT;}}presence.update(dt,player,[...journey.completed].reduce((mask,i)=>mask|(1<<i),0),entered&&!templeTransfer&&interiors.state.index<0&&!['falling','chamber'].includes(secret.state.phase),entered);inhabitants.update(dt,t,player,journey.completed.size,!templeTransfer&&interiors.state.index<0&&secret.state.phase!=='falling',reduced,orb.position,secret.state.phase==='chamber',!muteSpeech);updateCanvasPresentation(renderer.domElement, 1 - secret.fade, zoomBlend);scene.fog.color.set(secret.state.phase==='chamber'?'#a4b9bd':'#284449');scene.fog.density=secret.state.phase==='chamber'?.018:.009*Math.min(1,105/Math.max(20,camera.position.y));scene.fog.density=T.MathUtils.lerp(scene.fog.density,.0008,quickNav.blend);updateOrbShadow(orb.visible&&interiors.state.index<0&&secret.state.phase!=='falling'&&secret.state.phase!=='chamber');bloom.render(()=>menuActive&&interiors.state.index<0?renderCloudScene(renderer,scene,camera):interiors.render(scene,camera,zoomBlend,orb,quickNav.blend))}

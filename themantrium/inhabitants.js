@@ -37,10 +37,10 @@ export function createInhabitants(scene,navigation,camera){
  const characters=names.map((name,index)=>{
   let start=null;for(let z=-22;z<=22&&!start;z+=2)for(let x=-24;x<=24;x+=2){if(index===0&&x>-8||index===1&&x<8||index===2&&(Math.abs(x)>8||z<12))continue;const h=navigation.valid(x,z,.35);if(h!==null){start={x,z,height:h};break}}
   if(index===3)start={x:0,z:0,height:-60.79};
-  const material=new T.MeshPhysicalMaterial({color:colors[index],emissive:colors[index],emissiveIntensity:.24,roughness:.18,metalness:.15,transparent:true,opacity:.7});const mesh=new T.Mesh(new T.SphereGeometry(.43,24,16),material);group.add(mesh);
+  const material=new T.MeshPhysicalMaterial({color:colors[index],emissive:colors[index],emissiveIntensity:.62,roughness:.18,metalness:.15,transparent:true,opacity:.83});const mesh=new T.Mesh(new T.SphereGeometry(.43,24,16),material);group.add(mesh);
 
   const label=document.createElement('div');label.className='npc-label npc-speech speech-bubble';label.style.setProperty('--signal-delay',(-index*1.73)+'s');if(index===3)label.dataset.anchored='guru';label.setAttribute('role','note');label.setAttribute('aria-label',shortNames[index]+' · NPC guide');label.hidden=true;const prefix=document.createElement('strong');prefix.textContent=shortNames[index]+': ';const message=document.createElement('span');message.className='npc-typed';const messageFrame=document.createElement('div');messageFrame.className='npc-message-frame';messageFrame.append(message);label.append(prefix,messageFrame);const chatHint=document.createElement('button');chatHint.type='button';chatHint.className='npc-chat-hint';chatHint.tabIndex=-1;chatHint.hidden=chatDiscovered;label.classList.toggle('has-chat-hint',!chatDiscovered);chatHint.addEventListener('pointerdown',event=>event.stopPropagation());chatHint.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();startChat();});label.append(chatHint);document.body.append(label);
-  const character={state:start||{x:0,z:0,height:.35},mesh,label,message,messageFrame,chatHint,targetText:'',typingPhase:'idle',typingClock:0,heading:index*2.1,turn:0,thought:0,sinceHint:0,hintAfter:2+index,hintIndex:0,remaining:0,dismissed:false};
+  const character={state:start||{x:0,z:0,height:.35},mesh,label,message,messageFrame,chatHint,targetText:'',messagePhase:'idle',messageAnimation:null,heading:index*2.1,turn:0,thought:0,sinceHint:0,hintAfter:2+index,hintIndex:0,remaining:0,dismissed:false};
   addBubbleClose(label,()=>{character.dismissed=true;label.hidden=true;},'Close '+shortNames[index]+' speech bubble');
 
   return character;
@@ -83,8 +83,35 @@ export function createInhabitants(scene,navigation,camera){
 
   }
  }
- function speak(c,text){text=String(text).replace(/\s*[\u2013\u2014]\s*/g,', ');c.messageFrame.dataset.fullText=text;c.chatHint.classList.remove('is-visible');c.chatHint.tabIndex=-1;c.targetText=text;c.typingPhase=c.message.textContent?'erase':'type';c.typingClock=0;c.remaining=10+text.split(/\s+/).length*.35;}
- function typeMessage(c,dt,reduced){if(c.typingPhase==='idle')return;if(reduced){c.message.textContent=c.targetText;c.typingPhase='idle';return;}c.typingClock+=dt;const interval=c.typingPhase==='erase'?.014:.027;while(c.typingClock>=interval&&c.typingPhase!=='idle'){c.typingClock-=interval;if(c.typingPhase==='erase'){c.message.textContent=c.message.textContent.slice(0,-1);if(!c.message.textContent)c.typingPhase='type';}else{c.message.textContent=c.targetText.slice(0,c.message.textContent.length+1);if(c.message.textContent===c.targetText)c.typingPhase='idle';}}}
+ const clearText={opacity:1,filter:'blur(0px)',transform:'translateY(0)'};
+ const dissipated={opacity:0,filter:'blur(3px)',transform:'translateY(-2px)'};
+ const gathering={opacity:0,filter:'blur(3px)',transform:'translateY(2px)'};
+ function speak(c,text){
+  c.targetText=String(text).replace(/\s*[\u2013\u2014]\s*/g,', ');
+  c.chatHint.classList.remove('is-visible');c.chatHint.tabIndex=-1;
+  c.remaining=10+c.targetText.split(/\s+/).length*.35;
+  if(c.messagePhase==='idle')c.messagePhase='pending';
+ }
+ function updateMessage(c,reduced){
+  if(c.messagePhase==='idle')return;
+  if(reduced){
+   c.messageAnimation?.cancel();c.messageAnimation=null;
+   c.message.textContent=c.messageFrame.dataset.fullText=c.targetText;
+   c.messagePhase='idle';return;
+  }
+  if(c.messageAnimation && c.messageAnimation.playState!=='finished')return;
+  const fadedOut=c.messagePhase==='leaving';
+  c.messageAnimation?.cancel();c.messageAnimation=null;
+  if(!fadedOut && c.message.textContent===c.targetText){c.messagePhase='idle';return;}
+  if(!fadedOut && c.message.textContent){
+   c.messagePhase='leaving';
+   c.messageAnimation=c.message.animate([clearText,dissipated],{duration:320,easing:'ease-in',fill:'both'});
+   return;
+  }
+  c.message.textContent=c.messageFrame.dataset.fullText=c.targetText;
+  c.messagePhase='arriving';
+  c.messageAnimation=c.message.animate([gathering,clearText],{duration:480,easing:'ease-out',fill:'both'});
+ }
  let inSanctum=false;
  const present=c=>characters.indexOf(c)===3?inSanctum:!inSanctum;
  let currentPlayer=null,currentCount=0,available=false,editing=false,userTTL=0,chatPartner=null,chatFade=0;
@@ -126,14 +153,14 @@ export function createInhabitants(scene,navigation,camera){
  if(!available){if(editing)chatFade=.5;editing=false;bubble.hidden=chatFade<=0;input.blur();}else if(editing||userTTL>0||chatFade>0){bubble.hidden=false;userTTL=Math.max(0,userTTL-dt);const point=playerOrbPosition||new T.Vector3(player.x,player.height+1.45+(reduced?0:Math.sin(t*1.7)*.06),player.z);positionBubble(bubble,point,.65);}else bubble.hidden=true;
   characters.forEach((c,i)=>{c.mesh.visible=present(c);if(!active||!c.mesh.visible){if(!c.label.hidden)c.label.hidden=true;return;}const distance=Math.hypot(c.state.x-player.x,c.state.z-player.z);const nearby=distance<9&&Math.abs(c.state.height-player.height)<2;
    let formingMessage=false;
-   if(nearby && speechReady && !c.dismissed && c.typingPhase!=='idle'){
+   if(nearby && speechReady && !c.dismissed && c.messagePhase!=='idle'){
     const point=c.mesh.position.clone().project(camera);
     formingMessage=point.z<1 && Math.abs(point.x)<.98 && Math.abs(point.y)<.98;
    }
    if(i!==3&&distance>3.5&&!reduced&&!formingMessage){const before={...c.state};navigation.move(c.state,Math.cos(c.heading)*dt*.65,Math.sin(c.heading)*dt*.65,c);if(Math.hypot(c.state.x-before.x,c.state.z-before.z)<dt*.1)c.heading+=1.4;else c.heading+=Math.sin(t*.2+i)*dt*.08;}
-   const body=navigation.orbs.find(o=>o.owner===c);if(body){body.x=c.state.x;body.z=c.state.z;body.y=c.state.height+1.6;}c.mesh.position.set(c.state.x,c.state.height+1.6+(reduced?0:Math.sin(t*.8+i)*.12),c.state.z);const proximityGlow=.2+.35*(1-T.MathUtils.smoothstep(distance,3.5,6.5));c.mesh.material.emissiveIntensity=T.MathUtils.damp(c.mesh.material.emissiveIntensity,proximityGlow,3,dt);
+   const body=navigation.orbs.find(o=>o.owner===c);if(body){body.x=c.state.x;body.z=c.state.z;body.y=c.state.height+1.6;}c.mesh.position.set(c.state.x,c.state.height+1.6+(reduced?0:Math.sin(t*.8+i)*.12),c.state.z);const proximityGlow=.62+.36*(1-T.MathUtils.smoothstep(distance,3.5,6.5));c.mesh.material.emissiveIntensity=T.MathUtils.damp(c.mesh.material.emissiveIntensity,proximityGlow,3,dt);
    if(distance>=9||Math.abs(c.state.height-player.height)>=2)c.dismissed=false;
-   if(!c.dismissed&&distance<9&&Math.abs(c.state.height-player.height)<2){const p=c.mesh.position.clone().project(camera);if(p.z<1&&Math.abs(p.x)<.98&&Math.abs(p.y)<.98){if(c.label.hidden)c.label.hidden=false;if(speechReady)typeMessage(c,dt,reduced);if(!chatDiscovered){const ready=c.typingPhase==='idle'&&!!c.message.textContent;const hint=(innerWidth<=650||matchMedia('(pointer:coarse)').matches)?'Tap here to communicate':'Press / to communicate';if(c.chatHint.textContent!==hint)c.chatHint.textContent=hint;c.chatHint.classList.toggle('is-visible',ready);c.chatHint.tabIndex=ready?0:-1;}if(speechReady&&c.typingPhase==='idle')c.remaining-=dt;if(speechReady&&c.remaining<=0&&!(i===3&&editing))nextThought(c,i,count);positionBubble(c.label,c.mesh.position,.43);return;}}
+   if(!c.dismissed&&distance<9&&Math.abs(c.state.height-player.height)<2){const p=c.mesh.position.clone().project(camera);if(p.z<1&&Math.abs(p.x)<.98&&Math.abs(p.y)<.98){if(c.label.hidden)c.label.hidden=false;if(speechReady)typeMessage(c,dt,reduced);if(!chatDiscovered){const ready=c.messagePhase==='idle'&&!!c.message.textContent;const hint=(innerWidth<=650||matchMedia('(pointer:coarse)').matches)?'Tap here to communicate':'Press / to communicate';if(c.chatHint.textContent!==hint)c.chatHint.textContent=hint;c.chatHint.classList.toggle('is-visible',ready);c.chatHint.tabIndex=ready?0:-1;}if(speechReady&&c.messagePhase==='idle')c.remaining-=dt;if(speechReady&&c.remaining<=0&&!(i===3&&editing))nextThought(c,i,count);positionBubble(c.label,c.mesh.position,.43);return;}}
    if(!c.label.hidden)c.label.hidden=true;
   });
   arrangeBubbles();
