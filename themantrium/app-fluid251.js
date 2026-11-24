@@ -371,7 +371,7 @@ function updateVisitorView(now){
 }
 const presence=createPresence(scene,navigation,()=>{
  secret.unlock(true);playSanctumOpening();
-},showVisitor);
+},showVisitor,inhabitants);
 navigation.heightTransform=(x,z,y,id)=>[9,102,106].includes(id)?secret.height(x,z,y,id):y;
 const mobileView=matchMedia('(any-pointer:coarse), (max-width:650px)').matches||navigator.maxTouchPoints>0;
 let zoomTarget=1,zoomBlend=zoomTarget;
@@ -450,7 +450,7 @@ function checkTemple(){
 const keys=new Set(),velocity=new T.Vector2(),stick=new T.Vector2();addEventListener('keydown',e=>{if(e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.target.closest('input,textarea,select,[contenteditable="true"]') || (e.key===' ' && e.target.closest('button,a[href]')) || panel.open||(document.body.classList.contains('temple-ui')&&!document.body.classList.contains('temple-gallery')))return;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();keys.add(e.key.toLowerCase());if(e.key.toLowerCase()==='m'&&!e.repeat)showPage('map')});addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));addEventListener('blur',()=>{keys.clear();stick.set(0,0)});panel.addEventListener('close',()=>keys.clear());const joy=$('#joystick');
 let stickPointer=null,stickBounds=null;
 const touchPoints=new Map();let pinchDistance=null;
-function updateTouchUI(fade=false){const touch=matchMedia('(any-pointer:coarse), (max-width:650px)').matches||navigator.maxTouchPoints>0;joy.hidden=!entered||!touch;const instructions=$('#instructions'),text=touch?'☉ = Move · Pinch = Zoom · Double Tap = Speak · Triple Tap = Pulse':'WASD / ↑︎←︎↓︎→︎ = MOVE · SCROLL = ZOOM IN / OUT · / = SPEAK · P = SEND PULSE · M = MAP';if(fade&&!reduced){instructions.classList.add('copy-fading');setTimeout(()=>{instructions.textContent=text;instructions.classList.remove('copy-fading')},400)}else instructions.textContent=text;}
+function updateTouchUI(fade=false){const touch=matchMedia('(any-pointer:coarse), (max-width:650px)').matches||navigator.maxTouchPoints>0;joy.hidden=!entered||!touch;const instructions=$('#instructions'),text=touch?'☉ = Move · Pinch = Zoom · Double Tap = Speak · Triple Tap = Pulse':'WASD / <svg class="ui-arrow" width="1em" height="1em" role="img" aria-label="up arrow" focusable="false"><use href="public/ui-arrows.svg#up"></use></svg><svg class="ui-arrow" width="1em" height="1em" role="img" aria-label="left arrow" focusable="false"><use href="public/ui-arrows.svg#left"></use></svg><svg class="ui-arrow" width="1em" height="1em" role="img" aria-label="down arrow" focusable="false"><use href="public/ui-arrows.svg#down"></use></svg><svg class="ui-arrow" width="1em" height="1em" role="img" aria-label="right arrow" focusable="false"><use href="public/ui-arrows.svg#right"></use></svg> = MOVE · SCROLL = ZOOM IN / OUT · / = SPEAK · P = SEND PULSE · M = MAP';if(fade&&!reduced){instructions.classList.add('copy-fading');setTimeout(()=>{instructions.innerHTML=text;instructions.classList.remove('copy-fading')},400)}else instructions.innerHTML=text;}
 function resetStick(){stickPointer=null;stickBounds=null;stick.set(0,0);velocity.set(0,0);joy.firstElementChild.style.transform='none'}
 addEventListener('mantrium:reading-open',()=>{resetTouch();velocity.set(0,0)});
 function resetTouch(){resetStick();touchPoints.clear();pinchDistance=null;keys.clear();cancelPulseTap()}

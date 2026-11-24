@@ -125,12 +125,19 @@ const direct=[null,null,
 ];
 export function createTemplePages({leave,select,onOpen=()=>{},onRoom=()=>{}}){
  const root=document.createElement('section');root.id='temple-pages';root.hidden=true;root.setAttribute('aria-label','Temple interior');
- root.innerHTML='<div class="temple-toolbar"><span class="temple-caption"></span><button data-back hidden>←︎ All studies</button></div><button data-exit class="temple-exit-label">Return to the Mantrium <span aria-hidden="true">→︎</span></button><div class="pedestal-ui"><div class="gallery-heading"><span class="eyebrow"></span><h2></h2><p></p></div><div class="pedestal-labels"></div></div><article class="temple-reading" tabindex="0" aria-label="Temple story"><div class="reading-content"></div></article><div class="reading-progress"><span></span></div>';
+ root.innerHTML='<div class="temple-toolbar"><span class="temple-caption"></span><button data-back hidden><svg class="ui-arrow" width="1em" height="1em" aria-hidden="true" focusable="false"><use href="public/ui-arrows.svg#left"></use></svg> All studies</button></div><button data-exit class="temple-exit-label">Return to the Mantrium <span aria-hidden="true"></span></button><div class="pedestal-ui"><div class="gallery-heading"><span class="eyebrow"></span><h2></h2><p></p></div><div class="pedestal-labels"></div></div><article class="temple-reading" tabindex="0" aria-label="Temple story"><div class="reading-content"></div></article><div class="reading-progress"><span></span></div>';
  document.body.append(root);const reading=root.querySelector('article'),content=root.querySelector('.reading-content'),gallery=root.querySelector('.pedestal-ui'),labels=root.querySelector('.pedestal-labels'),back=root.querySelector('[data-back]');
  let opening=false,fadeReady=false,cameraReady=false,openingAnimation=null;
  const exit=root.querySelector('[data-exit]'),progressTrack=root.querySelector('.reading-progress'),progressBar=progressTrack.querySelector('span');
  let stages=[],chapters=[],galleryButtons=[];
  const touchReading=matchMedia('(pointer:coarse), (max-width:650px)');
+ const toolbar=root.querySelector('.temple-toolbar');
+ function positionToolbar(){
+  if(touchReading.matches)reading.prepend(toolbar);
+  else root.prepend(toolbar);
+ }
+ positionToolbar();
+ touchReading.addEventListener('change',positionToolbar);
  const heldDuringOpening=new Set();
  function unlockOpening(){if(opening&&fadeReady&&cameraReady){opening=false;reading.removeAttribute('aria-busy');}}
  function cancelOpening(){openingAnimation?.cancel();openingAnimation=null;opening=false;reading.removeAttribute('aria-busy');}
@@ -224,12 +231,12 @@ export function createTemplePages({leave,select,onOpen=()=>{},onRoom=()=>{}}){
   cancelOpening();stopArrowScroll();opening=true;fadeReady=false;cameraReady=false;reading.setAttribute('aria-busy','true');dispatchEvent(new Event('mantrium:reading-open'));
  clearTimeout(closeTimer);closeTimer=null;hasScrolled=false;reading.classList.remove('closing');onOpen();item=which;mode='reading';root.dataset.temple=['creation','knowledge','intelligence','origin'][index];
   const data=index<2?(index===0?projects:studies)[which]:direct[index];
-  content.innerHTML=`<div class="reading-hero" data-orb-side="right"><div class="hero-copy"><span class="eyebrow">${data.type}</span><h1>${data.name}</h1><p class="reading-deck">${data.intro}</p><span class="scroll-cue">SCROLL TO DISCOVER ↓︎</span></div><div class="hero-seal" aria-hidden="true"><span>${['CREATE','DISCOVER','CONNECT','BECOME'][index]}</span><i>0${index+1}</i></div></div>`+
+  content.innerHTML=`<div class="reading-hero" data-orb-side="right"><div class="hero-copy"><span class="eyebrow">${data.type}</span><h1>${data.name}</h1><p class="reading-deck">${data.intro}</p><span class="scroll-cue">SCROLL TO DISCOVER <svg class="ui-arrow" width="1em" height="1em" aria-hidden="true" focusable="false"><use href="public/ui-arrows.svg#down"></use></svg></span></div><div class="hero-seal" aria-hidden="true"><span>${['CREATE','DISCOVER','CONNECT','BECOME'][index]}</span><i>0${index+1}</i></div></div>`+
    data.sections.map(([title,text],i)=>{const side=i%2===0?'right':'left',kind=['statement','split','framed','manifesto'][(i+index)%4];return `<section class="chapter chapter-${kind} copy-${side}" data-section="${i}" data-orb-side="${side==='right'?'left':'right'}">${ornament(i)}<div class="chapter-copy"><div class="chapter-meta"><span class="section-number">${String(i+1).padStart(2,'0')}</span><span>${motifs[index][i]}</span></div><h2>${title.replace(/^\d+ · /,'')}</h2><p>${text}</p><div class="chapter-note">${principles[index][i]}</div></div></section>`;}).join('')+
    (index===0&&which===0?threePMStory():index===1?(which===1?true2natureStudy():which===0?comparisonPlaceholders():''):'')+
-   '<div class="reading-end" data-orb-side="right"><div><span class="eyebrow">CARRY THE IDEA WITH YOU</span><h2>Every return is<br><em>a new beginning.</em></h2><button data-finish>Return to the Mantrium <span class="cta-arrow" aria-hidden="true">→︎</span></button></div></div>';
+   '<div class="reading-end" data-orb-side="right"><div><span class="eyebrow">CARRY THE IDEA WITH YOU</span><h2>Every return is<br><em>a new beginning.</em></h2><button data-finish>Return to the Mantrium <span class="cta-arrow" aria-hidden="true"></span></button></div></div>';
   stages=[...content.querySelectorAll('[data-orb-side]')];chapters=[...content.querySelectorAll('section')];
-  content.querySelector('[data-finish]').onclick=()=>{leave()};reading.hidden=false;gallery.hidden=true;back.hidden=index>=2;back.textContent=index===0?'←︎ All projects':'←︎ All studies';progressTrack.hidden=false;document.body.classList.add('temple-reading-open');reading.scrollTo({top:0,left:0,behavior:'instant'});progress=0;active=0;orbAnchor={x:.54,y:-.12};reading.focus({preventScroll:true});openingAnimation=content.querySelector('.hero-copy').animate([{opacity:0},{opacity:1}],{duration:matchMedia('(prefers-reduced-motion:reduce)').matches?0:900,easing:'ease',fill:'none'});openingAnimation.onfinish=()=>{fadeReady=true;unlockOpening();};requestAnimationFrame(()=>{updateReading();updateGlassLettering();});
+  content.querySelector('[data-finish]').onclick=()=>{leave()};reading.hidden=false;gallery.hidden=true;back.hidden=index>=2;back.innerHTML='<svg class="ui-arrow" width="1em" height="1em" aria-hidden="true" focusable="false"><use href="public/ui-arrows.svg#left"></use></svg> '+(index===0?'All projects':'All studies');progressTrack.hidden=false;document.body.classList.add('temple-reading-open');reading.scrollTo({top:0,left:0,behavior:'instant'});progress=0;active=0;orbAnchor={x:.54,y:-.12};reading.focus({preventScroll:true});openingAnimation=content.querySelector('.hero-copy').animate([{opacity:0},{opacity:1}],{duration:matchMedia('(prefers-reduced-motion:reduce)').matches?0:900,easing:'ease',fill:'none'});openingAnimation.onfinish=()=>{fadeReady=true;unlockOpening();};requestAnimationFrame(()=>{updateReading();updateGlassLettering();});
  }
 
  function updateGlassLettering(){

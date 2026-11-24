@@ -10,8 +10,8 @@ export function create3PMEmblem(){
 export function createBrandEmblem(name){
  const group=new T.Group();group.userData.emblem=true;
  const colours={nature:'#a6c1a7',football:'#d2dbe3',jungle:'#c8bea5'};
- const face=new T.MeshStandardMaterial({color:colours[name],metalness:.48,roughness:.34});
- const edge=new T.MeshStandardMaterial({color:'#52696d',metalness:.7,roughness:.3});
+ const face=new T.MeshStandardMaterial({color:colours[name],emissive:colours[name],emissiveIntensity:.8,metalness:.38,roughness:.34});
+ const edge=new T.MeshStandardMaterial({color:'#52696d',emissive:'#80968f',emissiveIntensity:.35,metalness:.7,roughness:.3});
  const size=name==='jungle'?2.65:2.35;
  const shapes=emblemShapes[name].map(({outline,holes})=>{
   const s=new T.Shape(outline.map(p=>new T.Vector2(...p)));
@@ -29,8 +29,9 @@ export function createBrandEmblem(name){
   // Preserve linework while bringing the bright source pigments into the temple's mineral palette.
   face.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
    float ink=dot(diffuseColor.rgb,vec3(.299,.587,.114));
-   diffuseColor.rgb=mix(vec3(.13,.22,.22),vec3(.82,.84,.69),sqrt(ink));`);};
-  face.customProgramCacheKey=()=> 'temple-emblem-mineral-v1';
+   diffuseColor.rgb=mix(vec3(.13,.22,.22),vec3(.82,.84,.69),sqrt(ink));`).replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+   totalEmissiveRadiance*=mix(.25,1.,sqrt(ink));`);};
+  face.customProgramCacheKey=()=> 'temple-emblem-mineral-v2';
  }
  return group;
 }
