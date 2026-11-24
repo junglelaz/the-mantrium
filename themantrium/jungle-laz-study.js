@@ -47,6 +47,8 @@ export function jungleLazStudy() {
        ${link('https://junglelaz.net/store/', 'Explore the store')}`],
     ['A–Z Digital Presence Dashboard', 'Where a release travels.',
       `<p>A song can find its audience on a social feed, on a streaming service, in a store or through a music NFT. The A–Z Digital Presence Dashboard brings each of those channels into one view so Laszlo can follow a release beyond its launch day.</p>
+       <figure class="jungle-dashboard">${artwork('dashboard', 'Jungle Laz creator overview showing followers, video views, music streams and individual platform cards', 1359, 863, true)}
+         <figcaption>The overview is set to 26 August through 23 November 2026. Cards marked “all time” show cumulative figures across the sources included.</figcaption></figure>
        <dl class="jungle-channels"><div><dt>Social media</dt><dd>Reach and engagement across the artist’s channels.</dd></div>
        <div><dt>Streaming</dt><dd>Listening activity across the platforms carrying the catalogue.</dd></div>
        <div><dt>Stores</dt><dd>Sales activity across music and merchandise outlets.</dd></div>
