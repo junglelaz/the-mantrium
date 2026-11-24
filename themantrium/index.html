@@ -52,6 +52,10 @@
  #contact-form .contact-status:empty{display:none}
  .contact-panel .contact-direct{margin-top:4px}
  }
+ @media (pointer:coarse),(max-width:650px){
+ body footer.fitted-controls{left:var(--guide-left);right:var(--guide-right);max-width:none;padding-inline:0}
+ footer.fitted-controls>#instructions{display:block;flex:none;width:max-content;max-width:none;white-space:nowrap;font-size:var(--guide-size)}
+ }
  </style></head><body class="is-loading">
 <div id="arrival" role="status" aria-live="polite"><div class="arrival-aura"></div><img src="public/mark.svg" alt="" class="arrival-mark"><span class="arrival-name">MANTRIUM</span><span id="arrival-status" aria-live="off">Your sanctuary awaits...</span><span class="arrival-track"><i></i></span></div>
 <canvas id="world" aria-label="Mantrium sanctuary. Use arrow keys or WASD to move after entering."></canvas><div class="shade"></div>
@@ -66,9 +70,27 @@
 (function(){
  const mobile=matchMedia('(pointer:coarse),(max-width:650px)');
  const root=document.documentElement;
+ const guide=document.querySelector('#instructions'),footer=guide.parentElement;
+ function fitGuide(){
+  const active=mobile.matches && guide.textContent.includes('Double Tap = Pulse');
+  footer.classList.toggle('fitted-controls',active);
+  if(!active)return;
+  const pad=document.querySelector('#joystick').getBoundingClientRect();
+  if(!pad.width)return;
+  const leftControl=[document.querySelector('.temple-exit-label'),document.querySelector('#hud')]
+   .find(el=>el && el.getBoundingClientRect().width && getComputedStyle(el).visibility==='visible');
+  const right=Math.max(0,document.documentElement.clientWidth-pad.right);
+  const left=leftControl?leftControl.getBoundingClientRect().left:right;
+  footer.style.setProperty('--guide-left',left+'px');
+  footer.style.setProperty('--guide-right',right+'px');
+  footer.style.setProperty('--guide-size','16px');
+  const width=guide.getBoundingClientRect().width;
+  if(width>0)footer.style.setProperty('--guide-size',(16*(pad.right-left)/width)+'px');
+ }
  let pending=false;
  function measureControls(){
   pending=false;
+  fitGuide();
   let ceiling=innerHeight;
   if(mobile.matches)for(const el of document.querySelectorAll('#joystick,#hud,.temple-exit-label')){
    const rect=el.getBoundingClientRect();
@@ -82,6 +104,8 @@
  const observed=new WeakSet(), sizes=new ResizeObserver(queueMeasure);
  function watchControls(){for(const el of document.querySelectorAll('#joystick,#hud,.temple-exit-label'))if(!observed.has(el)){observed.add(el);sizes.observe(el)}queueMeasure()}
  watchControls();
+ new MutationObserver(queueMeasure).observe(guide,{childList:true,characterData:true,subtree:true});
+ document.fonts?.ready.then(queueMeasure);
  new MutationObserver(watchControls).observe(document.body,{attributes:true,attributeFilter:['class']});
  addEventListener('resize',queueMeasure);
  document.addEventListener('animationend',queueMeasure);
