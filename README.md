@@ -1,5 +1,13 @@
 # The Mantrium
 
-Frontend source from the fluid251 release of [The Mantrium](https://mantrium.io/themantrium/).
+The interactive 3D sanctuary at [mantrium.io/themantrium](https://mantrium.io/themantrium/). This review snapshot contains the fluid251 source, local Three.js dependencies, scene assets and PHP endpoints.
 
-Start with the [scene and controls](themantrium/app-fluid251.js), [arrival sequence](themantrium/arrival-fluid251.js) and [cloud rendering](themantrium/clouds-fluid251.js). This partial review snapshot contains 17 frontend and supporting files. Server-side code, assets and additional client dependencies are pending, so this revision is for source review only.
+## Review the experience
+
+Start in [index.html](themantrium/index.html). The [arrival sequence](themantrium/arrival-fluid251.js) loads the [scene and controls](themantrium/app-fluid251.js). [Cloud rendering](themantrium/clouds-fluid251.js) handles ambient drift, orb movement and desktop hover. [Temple interiors](themantrium/interiors-fluid251.js) and [reading panels](themantrium/temple-pages-fluid248.js) handle the portfolio experience. Server-side handlers live in [api](themantrium/api/).
+
+## Run locally
+
+From the repository root, run `php -S 127.0.0.1:8000` and open `http://127.0.0.1:8000/themantrium/`. For a visual-only preview, use `python3 -m http.server 8000` at the same address. The scene uses WebGL and browser ES modules.
+
+NPC dialogue requires PHP cURL and a server-side `OPENAI_API_KEY`. Contact delivery uses the server's mail configuration. Production credentials and visitor state are excluded. See the [asset credits](themantrium/public/ASSET-CREDITS.md), [star credits](themantrium/STAR-CREDITS.txt) and license notices in the vendor and astronomy files.

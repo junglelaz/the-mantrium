@@ -1,0 +1,20 @@
+{
+  "source": "https://github.com/cosinekitty/astronomy",
+  "engine": "2.1.19",
+  "validFrom": "2026-01-01T00:00:00Z",
+  "validUntil": "2037-01-01T00:00:00Z",
+  "intervalHours": 3,
+  "files": {
+    "2026.json": "fffd6fb36a96a45d145d73d764cc196f1da478b8f3136fae618350d35c628bda",
+    "2027.json": "54517526aea1629aab1c5e4b7bee6a6b73cb75308836ad81689e990b9f2c7052",
+    "2028.json": "ac32ca29bde92a0cddc21f9feedea64f0147368dcab58f41e0b1acbf84f8b860",
+    "2029.json": "713d5972e21a4d62b55465a314767cc7e44ee767170c9abb0d024350b2df394a",
+    "2030.json": "b3b55110fce7b1bfd42de5e75224eb44da3d5948f86b0ab3b3d7b1052b9a634f",
+    "2031.json": "dd40906b86b50cdc59cdab3edbd2edf143f0eb944a6e1aba8686af0ee9e7fda3",
+    "2032.json": "42220da9b4f6dfe382e17c1916515840ff29919ee7c7f6bb8b1b476c668b3331",
+    "2033.json": "aca0d1af8281835909c3135a63fb3bcf8b4782a6a00ea14532e835af6b5d81b3",
+    "2034.json": "c4f2e9c74fcd05ae21f8b37e7bb7137d940498170d7f7de0e84a828fa88f82a4",
+    "2035.json": "885bbb302eca957d76924e06015ec7d39e7ef9507308c4d950ad71719315d0cd",
+    "2036.json": "b39659ad309f7e740889b594dcf882bff39c554f2fd74306102d1bbbcd365402"
+  }
+}

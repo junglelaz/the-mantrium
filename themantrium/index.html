@@ -1,0 +1,50 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Mantrium · The Living Temple</title><meta name="description" content="Explore The Mantrium: a living sanctuary of design, engineering and intelligence."><link rel="icon" type="image/svg+xml" href="public/favicon-dark.svg?v=236"><link rel="stylesheet" href="style.css?v=spacing237"><script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script><link rel="modulepreload" href="./vendor/three.module.js"><link rel="modulepreload" href="./app-fluid251.js"><style>#arrival .arrival-alt{position:absolute;bottom:max(7vh,2rem);color:inherit;font-size:.8rem;text-underline-offset:.3em}#arrival.unfolding .arrival-alt{visibility:hidden}@media(pointer:coarse),(max-width:650px){
+  body.temple-reading-open #temple-pages .temple-reading:not(.closing){pointer-events:auto;touch-action:pan-y pinch-zoom;overflow-y:auto;overscroll-behavior-y:contain;scroll-behavior:auto}
+  body.temple-reading-open #temple-pages .temple-toolbar{z-index:5;pointer-events:none}
+  body.temple-reading-open #temple-pages .temple-toolbar button{pointer-events:auto}
+  }@media(pointer:coarse),(max-width:650px){
+  body :is(.npc-label.npc-speech,.player-speech,.speech-bubble),
+  body :is(.npc-label.npc-speech,.player-speech,.speech-bubble)::after{
+   backdrop-filter:none!important;-webkit-backdrop-filter:none!important;animation:none;
+  }
+  body :is(.npc-label.npc-speech,.player-speech,.speech-bubble)::after{
+   background:linear-gradient(145deg,#c4f4ee16,transparent 55%),#193638df;
+  }
+  }</style></head><body class="is-loading">
+<div id="arrival" role="status" aria-live="polite"><div class="arrival-aura"></div><img src="public/mark.svg" alt="" class="arrival-mark"><span class="arrival-name">MANTRIUM</span><span id="arrival-status">Your sanctuary awaits...</span><span class="arrival-track"><i></i></span></div>
+<canvas id="world" aria-label="Mantrium sanctuary. Use arrow keys or WASD to move after entering."></canvas><div class="shade"></div>
+<header><a class="brand" href="./"><img src="public/mark.svg" alt="Mantrium emblem"><span>MANTRIUM</span></a><nav aria-label="Main navigation"><button id="map" aria-label="Open temple menu" aria-expanded="false" aria-controls="quick-nav"><span class="menu-icon" aria-hidden="true"></span></button><button id="contact-toggle" aria-label="Contact Mantrium" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 5h18v14H3z M3 5l9 7 9-7"/></svg></button><button id="sound" aria-pressed="false" aria-label="Sound" title="Turn sound on"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3z"/><path class="sound-waves" d="M16 8a6 6 0 0 1 0 8 M19 5a10 10 0 0 1 0 14"/><path class="sound-muted" d="m16 9 6 6 m0-6-6 6"/></svg></button></nav></header>
+<main id="intro"><div class="intro-heading"><div class="eyebrow">A SANCTUARY FOR IDEAS</div><h1>Ancient wisdom.<br><em>Future systems.</em></h1></div><div class="intro-entry"><p class="opening-manifesto">A <em>digital dimension</em> for <em>intuition &amp; intention.</em></p><button class="primary" id="enter">Enter The Mantrium <span>↗︎</span></button></div></main>
+<div id="hud" hidden><div class="eyebrow" id="zone">THE CENTRAL CROSSING</div><h2 id="objective">Follow your curiosity.</h2><p id="hint">enter a temple</p><div id="temple-actions"><button id="travel">Visit Creation</button><button id="return" hidden>Return to the centre</button></div></div>
+<footer><span id="instructions">BESPOKE SERVICES FOR THE DIGITAL ELITE</span></footer>
+<div id="notice" role="status" aria-live="polite"></div><div id="joystick" aria-label="Drag to steer" hidden><span></span></div>
+<dialog id="panel"><button id="close" aria-label="Close panel">Close</button><div id="panel-content"></div></dialog>
+<noscript><section class="fallback"><h1>Mantrium</h1><p>Design, engineering and intelligent systems. Founded by Laszlo and Narayana.</p><p>This sanctuary prototype needs JavaScript. Our portfolio content is being prepared.</p></section></noscript>
+<script>
+(function(){
+ const screen=document.getElementById('arrival'),status=document.getElementById('arrival-status');
+ let timer;
+ function showRetry(message){
+  if(!screen.isConnected)return;
+  status.textContent=message;
+  if(screen.querySelector('button'))return;
+  const button=document.createElement('button');
+  button.textContent='Try again';
+  button.onclick=()=>location.reload();
+  screen.append(button);
+ }
+ timer=setTimeout(()=>showRetry('Still connecting to the sanctuary.'),25000);
+ import('./arrival-fluid251.js').catch(error=>{
+  console.error('Mantrium startup',error);
+  const detail=String(error.message||error);
+  const network=/fetch|network|load failed|module script|importing a module|import a module/i.test(detail);
+  let retry=false;
+  if(network){try{
+   const key='mantrium-reconnect-249',previous=Number(sessionStorage.getItem(key)||0);
+   if(Date.now()-previous>120000){sessionStorage.setItem(key,String(Date.now()));retry=true;}
+  }catch{}}
+  if(retry){status.textContent='Reconnecting to the sanctuary…';setTimeout(()=>location.reload(),1200);}
+  else showRetry(network?'Connection interrupted while loading the sanctuary.':/webgl/i.test(detail)?'The 3D renderer could not start.':'The 3D scene could not start.');
+ }).finally(()=>clearTimeout(timer));
+})();
+</script></body></html>

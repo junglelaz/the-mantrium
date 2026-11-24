@@ -1,0 +1,45 @@
+THE MANTRIUM — ORACLE SKY CONTEXT (jyotisha124)
+
+Astronomy Engine 2.1.19 by Don Cross, MIT:
+https://github.com/cosinekitty/astronomy
+https://pypi.org/project/astronomy-engine/2.1.19/
+Seven physical bodies: apparent geocentric true-ecliptic longitudes, sampled every
+three hours and interpolated along the shortest angular arc at the server's UTC.
+The bundled ephemeris covers 1 January 2026 through 31 December 2036. Positions
+are calculated astronomical data, not an external daily feed or AI guesses.
+Regenerate/extend with work/astronomy/generate.py before 2037. Outside coverage,
+the system explicitly omits sky claims; it never silently reuses an old date.
+
+Approximate Lahiri (Chitrapaksha) ayanamsa polynomial adapted from Grahan, MIT:
+https://github.com/svarbhanu/grahan/blob/main/packages/vedic/src/ayanamsa.ts
+Retains the mean-offset approximation with apparent longitudes. This is not an
+exact ritual almanac. Mean lunar nodes use the standard mean ascending-node
+polynomial; Ketu is opposite Rahu. No true-node or natal-chart claims are made.
+
+Panchanga at the current instant:
+tithi = floor(normalized Moon-Sun / 12 degrees) + 1;
+nakshatra = floor(sidereal Moon / 13 1/3 degrees);
+yoga = floor(normalized sidereal Moon+Sun / 13 1/3 degrees);
+karana = successive six-degree elongation segments (fixed and repeating sequence).
+Vara is the local weekday of the most recent sunrise. Sunrise uses PHP's
+https://www.php.net/manual/en/function.date-sun-info.php with half-degree-rounded
+IP-derived approximate coordinates and an IANA timezone. Coordinates are not
+included in the model prompt. No reliable location or no recent polar sunrise:
+vara is omitted. Current elements and sunrise elements are kept separate.
+
+Validation: 13,860 sampled planetary comparisons over 2026–2036 against an
+independent ephemeris, max sampled difference 26.25 arcseconds. This is sampled
+validation, not a universal accuracy guarantee. A 0.04-degree boundary guard
+avoids overconfident Panchanga labels close to transitions. No exact end-times,
+festival dates, auspicious time windows or birth-chart readings are supplied.
+Swiss Ephemeris was used only as a development comparison tool and is NOT
+included in or required by this website.
+
+Interpretation: Jyotisha themes are symbolic cultural/spiritual interpretations,
+not established predictions of real-world geopolitical, medical or financial
+outcomes. The Oracle may be poetic and forward-looking, but must not fabricate
+positions, geographic forecasts, birth data or claims of supernatural certainty.
+
+There are no astronomy API fees, API keys, third-party daily feed calls or cron
+jobs. OpenAI dialogue still uses the existing API credits and request limits.
+Licence notices accompany this file.

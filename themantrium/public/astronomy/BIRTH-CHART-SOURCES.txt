@@ -1,0 +1,4 @@
+Astronomy Engine 2.1.19, MIT: https://github.com/cosinekitty/astronomy
+GeoNames cities15000, CC BY 4.0: https://www.geonames.org/ and https://download.geonames.org/export/dump/
+City dataset reduced to name, country, administrative code, coordinates, IANA timezone and population. Historical offsets from browser IANA/ICU timezone database.
+Approximate Lahiri sidereal, mean lunar nodes, whole-sign houses. Birth chart calculations run in browser memory.
