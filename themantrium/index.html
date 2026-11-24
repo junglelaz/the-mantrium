@@ -41,7 +41,7 @@
 @media(pointer:coarse),(max-width:650px){
  body .sanctum-exit-label{max-height:var(--control-ceiling,100vh);top:min(var(--ladder-label-top,52vh),calc(var(--control-ceiling,100vh) - 56px))!important}
  body .sanctum-exit-connector{display:none}
- body .presence-status{bottom:var(--control-inset,0px)}
+ body .presence-status{left:var(--guide-left,max(16px,env(safe-area-inset-left)));right:auto;bottom:var(--control-inset,0px);text-align:left}
  }
  @media (pointer:coarse),(max-width:650px){
  #panel.contact-panel{padding:18px 20px;max-height:calc(100dvh - 20px);overflow-y:auto}
@@ -97,7 +97,7 @@
    .find(el=>el && el.getBoundingClientRect().width && getComputedStyle(el).visibility==='visible');
   const right=Math.max(0,document.documentElement.clientWidth-pad.right);
   const left=leftControl?leftControl.getBoundingClientRect().left:right;
-  footer.style.setProperty('--guide-left',left+'px');
+  root.style.setProperty('--guide-left',left+'px');
   footer.style.setProperty('--guide-right',right+'px');
   footer.style.setProperty('--guide-size','16px');
   const width=guide.getBoundingClientRect().width;
