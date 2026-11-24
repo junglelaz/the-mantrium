@@ -1,6 +1,4 @@
-# The hall is a static HTML entry point. Live API responses use their own policies.
-<IfModule mod_headers.c>
-    SetEnvIf Request_URI "^/themantrium/(index[.]html)?$" mantrium_public_hall
-    Header set Cache-Control "public, max-age=0" env=mantrium_public_hall
-    Header set Cloudflare-CDN-Cache-Control "public, max-age=300, stale-if-error=86400" env=mantrium_public_hall
-</IfModule>
+# LiteSpeed handles requests inside this real directory in its own routing context.
+RewriteEngine On
+RewriteCond %{THE_REQUEST} "\s/+themantrium(?:/index\.html|/)?(?:[?\s])" [NC]
+RewriteRule ^(?:index\.html)?$ https://www.mantrium.io/ [R=301,L,NC]
