@@ -98,9 +98,21 @@ export function createInhabitants(scene,navigation,camera){
   event.stopPropagation();
   startChat();
  }
- for(const character of characters)character.label.addEventListener('click',openBubbleChat);
- bubble.addEventListener('click',openBubbleChat);
- function startChat(){if(!available)return;if(editing){input.focus();return;}if(!chatDiscovered){chatDiscovered=true;try{localStorage.setItem('mantrium-chat-discovered','1');}catch{}for(const c of characters){c.chatHint.hidden=true;c.chatHint.tabIndex=-1;c.label.classList.remove('has-chat-hint');}}editing=true;userTTL=0;chatFade=0;bubble.classList.remove('chat-departing');chatPartner=characters.filter(c=>present(c)&&Math.hypot(c.state.x-currentPlayer.x,c.state.z-currentPlayer.z)<9&&Math.abs(c.state.height-currentPlayer.height)<2).sort((a,b)=>Math.hypot(a.state.x-currentPlayer.x,a.state.z-currentPlayer.z)-Math.hypot(b.state.x-currentPlayer.x,b.state.z-currentPlayer.z))[0]||null;bubble.hidden=false;input.hidden=false;ownMessage.hidden=true;input.value='';resizeMessage();input.focus();}
+ for(const target of [...characters.map(c=>c.label),bubble]){
+  let origin=null;
+  target.addEventListener('touchstart',e=>{
+   const touch=e.touches[0];origin=e.touches.length===1?[touch.clientX,touch.clientY]:null;
+  },{passive:true});
+  target.addEventListener('touchcancel',()=>{origin=null;});
+  target.addEventListener('touchend',e=>{
+   const start=origin;origin=null;const touch=e.changedTouches[0];
+   if(!start||!touch||e.touches.length||Math.hypot(touch.clientX-start[0],touch.clientY-start[1])>12||e.target.closest('button,a,input,textarea,select'))return;
+   if(!available||target.hidden||!tapChat.matches)return;
+   e.preventDefault();openBubbleChat(e);
+  },{passive:false});
+  target.addEventListener('click',openBubbleChat);
+ }
+ function startChat(){if(!available)return;if(editing){input.focus();return;}if(!chatDiscovered){chatDiscovered=true;try{localStorage.setItem('mantrium-chat-discovered','1');}catch{}for(const c of characters){c.chatHint.hidden=true;c.chatHint.tabIndex=-1;c.label.classList.remove('has-chat-hint');}}editing=true;userTTL=0;chatFade=0;bubble.classList.remove('chat-departing');chatPartner=characters.filter(c=>present(c)&&Math.hypot(c.state.x-currentPlayer.x,c.state.z-currentPlayer.z)<9&&Math.abs(c.state.height-currentPlayer.height)<2).sort((a,b)=>Math.hypot(a.state.x-currentPlayer.x,a.state.z-currentPlayer.z)-Math.hypot(b.state.x-currentPlayer.x,b.state.z-currentPlayer.z))[0]||null;bubble.hidden=false;input.hidden=false;ownMessage.hidden=true;input.value='';input.focus({preventScroll:true});resizeMessage();}
  document.querySelector('#instructions').addEventListener('click',()=>{if(matchMedia('(any-pointer:coarse), (max-width:650px)').matches||navigator.maxTouchPoints>0)startChat()});
  addEventListener('keydown',event=>{if(event.key==='/'&&!event.target.closest('input,textarea,[contenteditable]')){event.preventDefault();event.stopImmediatePropagation();startChat();}else if(editing&&(event.target===input||event.key==='Escape')){if(event.key.startsWith('Arrow')){event.preventDefault();return;}event.stopImmediatePropagation();if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();bubble.requestSubmit();}if(event.key==='Escape'){editing=false;bubble.hidden=true;input.blur();}}},true);
  function reply(text,i){return offline.reply(text,i,{visited:currentCount,...conversationContext.get()});}

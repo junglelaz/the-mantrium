@@ -198,10 +198,10 @@ export function createInteriors(renderer,sites,orbMaterial){
    }
    r.camera.translateZ(shift*T.MathUtils.smoothstep(progress,.35,1));
    if(portrait){
-    // Move the overview down by up to 24 CSS pixels before blending into reading mode.
+    // Move the overview down by up to 42 CSS pixels before blending into reading mode.
     r.camera.updateMatrixWorld();
     viewCorner.set(0,0,0).applyMatrix4(r.camera.matrixWorldInverse);
-    const offset=Math.min(24,innerHeight*.035)*2/innerHeight;
+    const offset=Math.min(42,innerHeight*.06)*2/innerHeight;
     r.camera.translateY(-viewCorner.z*tangent*offset*T.MathUtils.smoothstep(progress,.35,1));
    }
    r.camera.updateMatrixWorld();
