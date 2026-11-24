@@ -1,5 +1,5 @@
 import {threePMStory} from './threepm-story.js?v=spacing237';
-import {jungleLazStudy} from './jungle-laz-study.js?v=1';
+import {jungleLazStudy} from './jungle-laz-study.js?v=2';
 import {true2natureStudy} from './true2nature-study.js?v=spacing237';
 // Project and case-study descriptions supplied by Mantrium. Comparison media awaits delivery.
 const projects=[

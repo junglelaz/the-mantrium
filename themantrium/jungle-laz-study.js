@@ -12,8 +12,8 @@ function artwork(file, label, width, height, small = false) {
   </a>`;
 }
 
-function walkthrough(file, title, height) {
-  return `<video class="jungle-tour" controls playsinline loading="lazy" preload="none" width="1280" height="${height}"
+function walkthrough(file, title, height, width = 1280) {
+  return `<video class="jungle-tour" controls playsinline loading="lazy" preload="none" width="${width}" height="${height}"
     aria-label="${title}" poster="${media}${file}-poster.webp" src="${media}${file}.mp4"></video>`;
 }
 
@@ -26,10 +26,18 @@ export function jungleLazStudy() {
     ['Artist identity', 'The eye of the lion.',
       `<p>The Ajna Lion looks straight back at you. A single blue eye sits at the centre of its face, framed by a mane picked out in flashes of red, yellow and green. The gold LASZLO wordmark gives that intricate emblem a quieter companion. The two can sit together or work independently, even on opposite sides of a garment.</p>
        <div class="jungle-identity">${artwork('ajna-lion', 'Ajna Lion emblem with a single blue eye and a multicoloured mane', 651, 909, true)}
-       ${artwork('laszlo-wordmark', 'LASZLO gold wordmark', 2048, 350, true)}</div>`],
+       ${artwork('laszlo-wordmark', 'LASZLO gold wordmark', 2048, 350, true)}</div>
+       <p class="jungle-render-note">In the 3D studies, the emblem takes on a body and a habitat. The same blue eye catches the light in a moonlit jungle and beneath a sunlit canopy.</p>
+       <div class="jungle-renders">
+         <figure><figcaption>Moonlight</figcaption>${artwork('ajna-night', '3D Ajna Lion walking through a moonlit jungle', 1536, 1024, true)}</figure>
+         <figure><figcaption>Daylight</figcaption>${artwork('ajna-day', '3D Ajna Lion walking beneath a sunlit jungle canopy', 1536, 1024, true)}</figure>
+       </div>`],
     ['The artist website', 'Enter the jungle.',
       `<p>JungleLaz.net gives a first-time listener several ways into Laszlo’s work. Enter the 3D jungle, play a record, watch a film or read <em>The Lion’s Origins</em>, his story in twelve chapters. The Inner Circle gives people who want to return a direct connection to the artist.</p>
-       ${walkthrough('desktop-tour', 'Desktop walkthrough of JungleLaz.net', 706)}
+       <div class="jungle-devices">
+         <figure><figcaption>Desktop walkthrough</figcaption>${walkthrough('desktop-tour', 'Desktop walkthrough of JungleLaz.net', 706)}</figure>
+         <figure><figcaption>Mobile walkthrough</figcaption>${walkthrough('mobile-tour', 'Mobile walkthrough of JungleLaz.net', 1214, 720)}</figure>
+       </div>
        ${link('https://junglelaz.net/', 'Visit JungleLaz.net')}`],
     ['Merchandise & store', 'Two sides of the same hoodie.',
       `<p>On the Desert Dust hoodie, the gold name runs across the chest. Turn it around and the Ajna Lion fills the back. Black and white tees give the same emblem a different canvas. The artist’s own store brings the clothing and digital music care packages together.</p>
