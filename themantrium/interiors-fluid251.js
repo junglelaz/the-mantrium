@@ -17,6 +17,7 @@ export function createInteriors(renderer,sites,orbMaterial){
  const screenshotOrb=createScreenshotOrb();
  const state={index:-1,blend:0,target:0,x:0,z:8,elapsed:0};
  const mobileFraming=matchMedia('(pointer:coarse), (max-width:650px)');
+ const frontCaps=[new T.Vector3(-10.6,7.15,10.6),new T.Vector3(10.6,7.15,10.6)];
  const roomBounds=[],viewCorner=new T.Vector3();
  for(const [radius,height] of [[11,-1],[11,0],[10.6,7.15]]){
   for(const x of [-radius,radius])for(const z of [-radius,radius])roomBounds.push(new T.Vector3(x,height,z));
@@ -187,8 +188,11 @@ export function createInteriors(renderer,sites,orbMaterial){
    r.camera.updateMatrixWorld();
    const tangent=Math.tan(T.MathUtils.degToRad(r.camera.fov/2));
    let shift=-Infinity;
-   for(const corner of roomBounds){
+   const portrait=aspect<1;
+   const horizontalLimit=1-2*Math.min(12,innerWidth*.025)/innerWidth;
+   for(const corner of (portrait?frontCaps:roomBounds)){
     viewCorner.copy(corner).applyMatrix4(r.camera.matrixWorldInverse);
+    if(portrait){shift=Math.max(shift,viewCorner.z+Math.abs(viewCorner.x)/(horizontalLimit*aspect*tangent));continue;}
     shift=Math.max(shift,viewCorner.z+Math.abs(viewCorner.x)/(1.035*aspect*tangent),
      viewCorner.z+Math.abs(viewCorner.y)/(1.035*tangent));
    }
