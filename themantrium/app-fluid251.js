@@ -343,7 +343,7 @@ const presence=createPresence(scene,navigation,()=>{
 });
 navigation.heightTransform=(x,z,y,id)=>[9,102,106].includes(id)?secret.height(x,z,y,id):y;
 const mobileView=matchMedia('(any-pointer:coarse), (max-width:650px)').matches||navigator.maxTouchPoints>0;
-let zoomTarget=mobileView?.72:1,zoomBlend=zoomTarget;
+let zoomTarget=1,zoomBlend=zoomTarget;
 // Menu approaches follow the marked doorways in the top-down emblem:
 // Creation southwest; Knowledge southeast; Intelligence northeast; Origin southeast.
 const menuDoorNormals=[[-1,1],[1,1],[1,-1],[1,1]].map(([x,z])=>({x:x/Math.SQRT2,z:z/Math.SQRT2}));
@@ -361,7 +361,7 @@ renderer.domElement.addEventListener('pointerleave',()=>{renderer.domElement.sty
 
 addEventListener('wheel',event=>{if(quickNav.open){event.preventDefault();if(event.deltaY<=0)return;quickNav.toggle(false);zoomTarget=mobileView?.72:1;if(!entered)enter();return;}if(!entered||panel.open||interiors.state.index>=0)return;event.preventDefault();const delta=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?innerHeight:1);zoomTarget=T.MathUtils.clamp(zoomTarget+delta*.0015,0,1)},{passive:false});
 const entranceEase=value=>{const u=T.MathUtils.clamp(value,0,1);return u*u*u*(u*(u*6-15)+10);};
-const hoverBase={position:camera.position.clone(),quaternion:camera.quaternion.clone(),look:new T.Vector3(),scale:0};let homeReturn=null,homePending=false;let controlsIntroduced=false;let descent=0;async function enter(){if(entered||homeReturn)return;entered=true;const intro=$('#intro');intro.classList.add('departing');intro.inert=true;setTimeout(()=>{if(entered)intro.hidden=true;intro.classList.remove('departing')},reduced?0:750);$('#hud').hidden=false;document.body.classList.add('exploring');updateTouchUI(true);if(!controlsIntroduced){controlsIntroduced=true;setTimeout(()=>{if(!entered)return;document.body.classList.add('controls-introduction');setTimeout(()=>document.body.classList.remove('controls-introduction'),3000);},reduced?0:800);}descent=performance.now();try{await score.start();$('#sound').title='Turn sound off';$('#sound').setAttribute('aria-pressed','true')}catch{notify('Audio unavailable. You can still explore.')}}
+const hoverBase={position:camera.position.clone(),quaternion:camera.quaternion.clone(),look:new T.Vector3(),scale:0};let homeReturn=null,homePending=false;let controlsIntroduced=false;let descent=0;async function enter(){if(entered||homeReturn)return;if(mobileView){zoomTarget=1;zoomBlend=1;}entered=true;const intro=$('#intro');intro.classList.add('departing');intro.inert=true;setTimeout(()=>{if(entered)intro.hidden=true;intro.classList.remove('departing')},reduced?0:750);$('#hud').hidden=false;document.body.classList.add('exploring');updateTouchUI(true);if(!controlsIntroduced){controlsIntroduced=true;setTimeout(()=>{if(!entered)return;document.body.classList.add('controls-introduction');setTimeout(()=>document.body.classList.remove('controls-introduction'),3000);},reduced?0:800);}descent=performance.now();try{await score.start();$('#sound').title='Turn sound off';$('#sound').setAttribute('aria-pressed','true')}catch{notify('Audio unavailable. You can still explore.')}}
 function returnToOpening(){
  if(homeReturn)return;
  if(interiors.state.index>=0){homePending=true;interiors.leave();return;}
@@ -419,7 +419,7 @@ function checkTemple(){
 const keys=new Set(),velocity=new T.Vector2(),stick=new T.Vector2();addEventListener('keydown',e=>{if(e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.target.closest('input,textarea,select,[contenteditable="true"]') || (e.key===' ' && e.target.closest('button,a[href]')) || panel.open||(document.body.classList.contains('temple-ui')&&!document.body.classList.contains('temple-gallery')))return;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();keys.add(e.key.toLowerCase());if(e.key.toLowerCase()==='m'&&!e.repeat)showPage('map')});addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));addEventListener('blur',()=>{keys.clear();stick.set(0,0)});panel.addEventListener('close',()=>keys.clear());const joy=$('#joystick');
 let stickPointer=null,stickBounds=null;
 const touchPoints=new Map();let pinchDistance=null;
-function updateTouchUI(fade=false){const touch=matchMedia('(any-pointer:coarse), (max-width:650px)').matches||navigator.maxTouchPoints>0;joy.hidden=!entered||!touch;const instructions=$('#instructions'),text=touch?'☉ = Move · Pinch = Zoom · Tap Bubble = Speak · Double Tap = Pulse':'WASD / ↑︎←︎↓︎→︎ = MOVE · SCROLL = ZOOM IN / OUT · / = SPEAK · P = SEND PULSE · M = MAP';if(fade&&!reduced){instructions.classList.add('copy-fading');setTimeout(()=>{instructions.textContent=text;instructions.classList.remove('copy-fading')},400)}else instructions.textContent=text;}
+function updateTouchUI(fade=false){const touch=matchMedia('(any-pointer:coarse), (max-width:650px)').matches||navigator.maxTouchPoints>0;joy.hidden=!entered||!touch;const instructions=$('#instructions'),text=touch?'☉ = Move · Pinch = Zoom · Double Tap = Speak · Triple Tap = Pulse':'WASD / ↑︎←︎↓︎→︎ = MOVE · SCROLL = ZOOM IN / OUT · / = SPEAK · P = SEND PULSE · M = MAP';if(fade&&!reduced){instructions.classList.add('copy-fading');setTimeout(()=>{instructions.textContent=text;instructions.classList.remove('copy-fading')},400)}else instructions.textContent=text;}
 function resetStick(){stickPointer=null;stickBounds=null;stick.set(0,0);velocity.set(0,0);joy.firstElementChild.style.transform='none'}
 addEventListener('mantrium:reading-open',()=>{resetTouch();velocity.set(0,0)});
 function resetTouch(){resetStick();touchPoints.clear();pinchDistance=null;keys.clear()}
@@ -429,13 +429,13 @@ function moveStick(e){const r=stickBounds,radius=r.width*.38;stick.set((e.client
 for(const type of ['pointerup','pointercancel','lostpointercapture'])joy.addEventListener(type,e=>{if(e.pointerId===stickPointer)resetStick()});
 
 // Observe taps without consuming joystick, camera or scrolling gestures.
-const pulseExcluded = '.speech-bubble, nav, #quick-nav, header, a, button, input, textarea, select, [contenteditable="true"], [role="button"], [role="navigation"], [role="menuitem"]';
+const pulseExcluded = 'dialog, #instructions, .temple-reading, .speech-bubble, nav, #quick-nav, header, a, button, input, textarea, select, [contenteditable="true"], [role="button"], [role="navigation"], [role="menuitem"]';
 let pulseTouch = null;
 let previousTap = null;
 const tapOptions = {capture:true, passive:true};
 function cancelPulseTap(){pulseTouch=null;previousTap=null;}
 document.addEventListener('touchstart',event=>{
-  if(!entered || event.touches.length!==1 || event.target.closest(pulseExcluded)){
+  if(!entered || panel.open || quickNav.open || event.touches.length!==1 || event.target.closest(pulseExcluded)){
     cancelPulseTap();
     return;
   }
@@ -460,10 +460,18 @@ document.addEventListener('touchend',event=>{
     return;
   }
   if(previousTap && now-previousTap.time<=350 && Math.hypot(t.clientX-previousTap.x,t.clientY-previousTap.y)<=32){
-    previousTap=null;
-    presence.sendPulse();
-  }else previousTap={x:t.clientX,y:t.clientY,time:now};
-},tapOptions);
+    event.preventDefault();
+    if(previousTap.count===2){
+      if(previousTap.openedChat)inhabitants.closeEmptyChat();
+      previousTap=null;
+      presence.sendPulse();
+    }else{
+      const wasEditing=inhabitants.chatting;
+      inhabitants.startChat();
+      previousTap={count:2,x:t.clientX,y:t.clientY,time:now,openedChat:!wasEditing && inhabitants.chatting};
+    }
+  }else previousTap={count:1,x:t.clientX,y:t.clientY,time:now};
+},{capture:true,passive:false});
 const canvas=renderer.domElement;
 function pinch(){if(interiors.state.index>=0)return;if(touchPoints.size!==2){pinchDistance=null;return}const [a,b]=[...touchPoints.values()],distance=Math.hypot(a.x-b.x,a.y-b.y);if(quickNav.open){if(pinchDistance>0&&distance>pinchDistance*1.015){quickNav.toggle(false);zoomTarget=innerWidth<=650?.72:1;}pinchDistance=distance;return;}if(pinchDistance>0&&distance>0)zoomTarget=T.MathUtils.clamp(zoomTarget+Math.log(distance/pinchDistance)*1.5,0,1);pinchDistance=distance}
 canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'||!entered||panel.open)return;e.preventDefault();canvas.setPointerCapture(e.pointerId);touchPoints.set(e.pointerId,{x:e.clientX,y:e.clientY});pinch()});
