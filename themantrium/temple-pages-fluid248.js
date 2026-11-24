@@ -166,10 +166,10 @@ export function createTemplePages({leave,select,onOpen=()=>{},onRoom=()=>{}}){
  }
 
  let bottomIntent=0,touchY=null;
- const atBottom=()=>mode==='reading'&&reading.scrollHeight>reading.clientHeight+80&&reading.scrollTop+reading.clientHeight>=reading.scrollHeight-3;
+ const atBottom=()=>mode==='reading'&&reading.scrollHeight>reading.clientHeight&&reading.scrollTop+reading.clientHeight>=reading.scrollHeight-3;
  reading.addEventListener('wheel',event=>{if(!atBottom()||event.deltaY<=0){bottomIntent=0;return;}bottomIntent+=event.deltaY*(event.deltaMode===1?16:1);if(bottomIntent>60){bottomIntent=0;closePage();}},{passive:true});
  reading.addEventListener('touchstart',event=>{touchY=event.touches[0]?.clientY;bottomIntent=0;},{passive:true});
- reading.addEventListener('touchmove',event=>{if(touchReading.matches)return;const y=event.touches[0]?.clientY;if(y===undefined||touchY===null)return;const delta=touchY-y;touchY=y;if(atBottom()&&delta>0){bottomIntent+=delta;if(bottomIntent>50){bottomIntent=0;closePage();}}else bottomIntent=0;},{passive:true});
+ reading.addEventListener('touchmove',event=>{if(event.touches.length!==1){touchY=null;bottomIntent=0;return;}const y=event.touches[0]?.clientY;if(y===undefined||touchY===null)return;const delta=touchY-y;touchY=y;if(atBottom()&&delta>0){bottomIntent+=delta;if(bottomIntent>50){bottomIntent=0;closePage();}}else bottomIntent=0;},{passive:true});
  const arrowKeys=new Set();let arrowVelocity=0,arrowFrame=0,arrowLast=0,edgeHold=0,arrowTapUntil=0,arrowTapDirection=0;
  function stopArrowScroll(){arrowKeys.clear();arrowTapUntil=0;arrowVelocity=0;edgeHold=0;cancelAnimationFrame(arrowFrame);arrowFrame=0;}
  function glideArrows(now){

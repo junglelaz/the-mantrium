@@ -189,8 +189,8 @@ export function createInteriors(renderer,sites,orbMaterial){
    let shift=-Infinity;
    for(const corner of roomBounds){
     viewCorner.copy(corner).applyMatrix4(r.camera.matrixWorldInverse);
-    shift=Math.max(shift,viewCorner.z+Math.abs(viewCorner.x)/(.94*aspect*tangent),
-     viewCorner.z+Math.abs(viewCorner.y)/(.94*tangent));
+    shift=Math.max(shift,viewCorner.z+Math.abs(viewCorner.x)/(1.035*aspect*tangent),
+     viewCorner.z+Math.abs(viewCorner.y)/(1.035*tangent));
    }
    r.camera.translateZ(shift*T.MathUtils.smoothstep(progress,.35,1));
    r.camera.updateMatrixWorld();
