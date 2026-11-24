@@ -1,0 +1,6 @@
+Star positions: HYG v4.1 by David Nash / Astronexus, compiled from Hipparcos, Yale Bright Star and Gliese catalogues.
+https://github.com/astronexus/HYG-Database
+https://github.com/astronexus/HYG-Database/blob/main/hyg/CURRENT/hygdata_v41.csv
+Data licence: Creative Commons Attribution-ShareAlike 4.0
+https://creativecommons.org/licenses/by-sa/4.0/
+Derived stars-data.js is distributed under that same licence. Changes: magnitude <=6, Sol excluded, four columns retained and coordinates rounded to six decimals. J2000 coordinates. Artistic sky orientation, not a live location/time simulation.
