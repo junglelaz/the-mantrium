@@ -20,6 +20,11 @@
  header nav :is(#sound,#contact-toggle,#map) :is(svg,.menu-icon){filter:none}
  header nav :is(#sound,#contact-toggle,#map){filter:drop-shadow(0 0 4px transparent) drop-shadow(0 0 8px transparent);transition:filter .3s ease,color .3s ease}
  header nav :is(#sound,#contact-toggle,#map):is(:hover,:active,:focus-visible){filter:drop-shadow(0 0 4px #d6f7eab3) drop-shadow(0 0 8px #c8ede96b)}
+ }@media(max-width:650px),(pointer:coarse){
+ #panel.contact-panel #close{position:absolute;top:12px;right:12px;float:none;min-width:44px;min-height:44px}
+ #panel.contact-panel #panel-content>.eyebrow,#panel.contact-panel #contact-heading{clear:none;margin-right:44px}
+ #panel.contact-panel #panel-content>.eyebrow{padding-top:0;font-size:9px;line-height:1.35;letter-spacing:.1em}
+ #panel.contact-panel #contact-heading{font-size:clamp(21px,5.7vw,26px)!important;line-height:1.12!important;margin-top:5px;margin-bottom:16px}
  }</style></head><body class="is-loading">
 <div id="arrival" role="status" aria-live="polite"><div class="arrival-aura"></div><img src="public/mark.svg" alt="" class="arrival-mark"><span class="arrival-name">MANTRIUM</span><span id="arrival-status" aria-live="off">Your sanctuary awaits...</span><span class="arrival-track"><i></i></span></div>
 <canvas id="world" aria-label="Mantrium sanctuary. Use arrow keys or WASD to move after entering."></canvas><div class="shade"></div>
