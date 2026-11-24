@@ -41,10 +41,14 @@ export const STAIR_CLEARANCE=.65;
 export const stairStart=(c,sign)=>c.overpassEdges?c.overpassEdges[sign<0?0:1]+STAIR_CLEARANCE:c.half-5;
 export function lowerProfile(c,d){const u=Math.max(0,Math.min(1,(Math.abs(d)-stairStart(c,d))/(STAIR_RUN*STAIR_COUNT)));return -3.65+STAIR_RISE*STAIR_COUNT*u}
 export function tunnelHeight(c,x,z){return lowerProfile(c,coordinates(c,x,z).along)}
-export function ribbonHeight(id,x,z){let h=.35;for(const c of crossings){
- if(c.a!==id&&c.b!==id)continue;
+const ribbonCrossings=[];
+for(const c of crossings){
+ for(const id of [c.a,c.b])(ribbonCrossings[id]??=[]).push(c);
+}
+const noCrossings=[];
+export function ribbonHeight(id,x,z){let h=.35;for(const c of ribbonCrossings[id]||noCrossings){
  const p=coordinates(c,x,z);
- if(Math.abs(p.along)>=c.half-4-.5&&Math.abs(p.along)<=stairStart(c,p.along)+STAIR_RUN*STAIR_COUNT&&Math.abs(p.across)<=c.width/2+1)h=Math.min(h,tunnelHeight(c,x,z));
+ if(Math.abs(p.along)>=c.half-4-.5&&Math.abs(p.along)<=stairStart(c,p.along)+STAIR_RUN*STAIR_COUNT&&Math.abs(p.across)<=c.width/2+1)h=Math.min(h,lowerProfile(c,p.along));
  }
  return h}
 export function inPolygon(x,z,points){let inside=false;for(let i=0,j=points.length-1;i<points.length;j=i++){const a=points[i],b=points[j];if((a[1]>z)!==(b[1]>z)&&x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0])inside=!inside}return inside}
@@ -75,7 +79,9 @@ export function createNavigation(polygons,temples){
  polygons.forEach((p,id)=>indexOutline(p,id,null));
  crossings.forEach(c=>indexOutline(c.outline,100+c.id,c));
  const empty=[];
- function surfaces(x,z){const hs=[];
+ const sampleHeights=[];
+ function collectSurfaces(x,z,hs){
+  hs.length=0;
   const nearby=cells.get(Math.floor(x/cellSize))?.get(Math.floor(z/cellSize))||empty;
   for(const {points,id,crossing} of nearby){
    if(!inPolygon(x,z,points))continue;
@@ -88,7 +94,18 @@ export function createNavigation(polygons,temples){
   for(const t of temples)if(Math.abs(x-t.x)+Math.abs(z-t.z)<=(Math.abs(t.x)>20?6.25:5.05)/Math.SQRT2)hs.push(templeFloorHeight(t,x,z));
   return hs;
  }
- function sample(x,z,fromHeight){let hs=surfaces(x,z);hs.sort((a,b)=>Math.abs(a-fromHeight)-Math.abs(b-fromHeight));const entry=temples.some(t=>Math.abs(t.x)>20&&Math.hypot(x-t.x,z-t.z)<4.8);return hs.find(h=>Math.abs(h-fromHeight)<(entry?FLOAT_HEIGHT+ORB_RADIUS+STAIR_RISE:.7))}
+ function surfaces(x,z){return collectSurfaces(x,z,[])}
+ function sample(x,z,fromHeight){
+  const hs=collectSurfaces(x,z,sampleHeights);
+  let nearest,distance=Infinity;
+  for(const h of hs){
+   const diff=Math.abs(h-fromHeight);
+   if(diff<distance){nearest=h;distance=diff;}
+  }
+  if(distance<.7)return nearest;
+  if(distance<FLOAT_HEIGHT+ORB_RADIUS+STAIR_RISE &&
+     temples.some(t=>Math.abs(t.x)>20&&Math.hypot(x-t.x,z-t.z)<4.8))return nearest;
+ }
  function valid(x,z,fromHeight){const h=sample(x,z,fromHeight);if(h===undefined)return null;
   // Require support around the whole orb, not just its centre.
   for(const [dx,dz] of edgeProbes){if(sample(x+dx,z+dz,h)===undefined)return null}

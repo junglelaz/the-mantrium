@@ -7,11 +7,12 @@ import {createClouds,renderCloudScene} from './clouds-fluid251.js';
 import {interiorMaterials,stoneUV} from './interior-surfaces.js?v=spacing237';
 import {createTemplePages} from './temple-pages-fluid248.js';
 import * as T from 'three';
-export function pinScreenPoint(camera,point,anchor,amount=1){camera.updateMatrixWorld();const local=point.clone().applyMatrix4(camera.matrixWorldInverse),tan=Math.tan(T.MathUtils.degToRad(camera.fov/2));const delta=new T.Vector3(local.x+local.z*tan*camera.aspect*anchor.x,local.y+local.z*tan*anchor.y,0).multiplyScalar(amount).applyQuaternion(camera.quaternion);camera.position.add(delta);camera.updateMatrixWorld();}
-function placeScreenPoint(camera,orb,anchor,amount=1){camera.updateMatrixWorld();const local=orb.position.clone().applyMatrix4(camera.matrixWorldInverse),tan=Math.tan(T.MathUtils.degToRad(camera.fov/2));const delta=new T.Vector3(-local.z*tan*camera.aspect*anchor.x-local.x,-local.z*tan*anchor.y-local.y,0).multiplyScalar(amount).applyQuaternion(camera.quaternion);orb.position.add(delta);}
+const viewPoint=new T.Vector3(),screenOffset=new T.Vector3();
+export function pinScreenPoint(camera,point,anchor,amount=1){camera.updateMatrixWorld();const local=viewPoint.copy(point).applyMatrix4(camera.matrixWorldInverse),tan=Math.tan(T.MathUtils.degToRad(camera.fov/2));const delta=screenOffset.set(local.x+local.z*tan*camera.aspect*anchor.x,local.y+local.z*tan*anchor.y,0).multiplyScalar(amount).applyQuaternion(camera.quaternion);camera.position.add(delta);camera.updateMatrixWorld();}
+function placeScreenPoint(camera,orb,anchor,amount=1){camera.updateMatrixWorld();const local=viewPoint.copy(orb.position).applyMatrix4(camera.matrixWorldInverse),tan=Math.tan(T.MathUtils.degToRad(camera.fov/2));const delta=screenOffset.set(-local.z*tan*camera.aspect*anchor.x-local.x,-local.z*tan*anchor.y-local.y,0).multiplyScalar(amount).applyQuaternion(camera.quaternion);orb.position.add(delta);}
 // Radius in normalized screen units; matching this ratio preserves the silhouette.
-export function screenRadius(camera,orb){camera.updateMatrixWorld();const depth=-orb.position.clone().applyMatrix4(camera.matrixWorldInverse).z;return orb.geometry.parameters.radius*orb.scale.x/(depth*Math.tan(T.MathUtils.degToRad(camera.fov/2)));}
-export function matchScreenRadius(camera,orb,radius,amount=1){camera.updateMatrixWorld();const depth=-orb.position.clone().applyMatrix4(camera.matrixWorldInverse).z;const scale=radius*depth*Math.tan(T.MathUtils.degToRad(camera.fov/2))/orb.geometry.parameters.radius;orb.scale.setScalar(T.MathUtils.lerp(1,scale,amount));}
+export function screenRadius(camera,orb){camera.updateMatrixWorld();const depth=-viewPoint.copy(orb.position).applyMatrix4(camera.matrixWorldInverse).z;return orb.geometry.parameters.radius*orb.scale.x/(depth*Math.tan(T.MathUtils.degToRad(camera.fov/2)));}
+export function matchScreenRadius(camera,orb,radius,amount=1){camera.updateMatrixWorld();const depth=-viewPoint.copy(orb.position).applyMatrix4(camera.matrixWorldInverse).z;const scale=radius*depth*Math.tan(T.MathUtils.degToRad(camera.fov/2))/orb.geometry.parameters.radius;orb.scale.setScalar(T.MathUtils.lerp(1,scale,amount));}
 // Approach the physical doorway, cross its threshold, then reveal the interior.
 export function createInteriors(renderer,sites,orbMaterial){
  const screenshotOrb=createScreenshotOrb();
@@ -72,6 +73,10 @@ export function createInteriors(renderer,sites,orbMaterial){
  }`,depthTest:false,depthWrite:false});screen.add(new T.Mesh(new T.PlaneGeometry(2,2),material));
  const mistPosition=new T.Vector3();
  let onExit=()=>{},near=null;
+ const aimCamera=new T.PerspectiveCamera();
+ const matchedPosition=new T.Vector3(),matchedRotation=new T.Quaternion();
+ const inverseYaw=new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),-Math.PI/4);
+ const roomOrigin=new T.Vector3();
  let menuCamera=null,menuRoom=-1;
  let exitCamera=null,exitNormal=new T.Vector3(1,0,0);
  let entry=null,startCamera=null,motionReduced=false,anchor=null,anchorRadius=0,settle=0,roomSettle=1,lastDt=0,deferOrb=false,reveal=0,exitGlitch=0,exitReveal=0;
@@ -132,14 +137,13 @@ export function createInteriors(renderer,sites,orbMaterial){
    // Map the exterior roof plane into the room's 22-unit square. Both
    // cameras then project the same four corners throughout the dissolve.
    const site=sites[state.index],scale=5.15/22;
-   const inverseYaw=new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),-Math.PI/4);
-   const matched=hallCamera.clone();
-   matched.position.sub(new T.Vector3(site.x,3.79,site.z)).applyQuaternion(inverseYaw).divideScalar(scale);
-   matched.quaternion.premultiply(inverseYaw);
+   matchedPosition.set(hallCamera.position.x-site.x,hallCamera.position.y-3.79,hallCamera.position.z-site.z);
+   matchedPosition.applyQuaternion(inverseYaw).divideScalar(scale);
+   matchedRotation.copy(hallCamera.quaternion).premultiply(inverseYaw);
    const rise=T.MathUtils.smoothstep(menuBlend,0,.42);
    r.camera.copy(menuCamera);r.camera.aspect=hallCamera.aspect;
    r.camera.fov=T.MathUtils.lerp(menuCamera.fov,hallCamera.fov,rise);r.camera.far=2000;r.camera.updateProjectionMatrix();
-   r.camera.position.lerp(matched.position,rise);r.camera.quaternion.slerp(matched.quaternion,rise);
+   r.camera.position.lerp(matchedPosition,rise);r.camera.quaternion.slerp(matchedRotation,rise);
    r.camera.updateMatrixWorld();
    const cross=T.MathUtils.smoothstep(menuBlend,.46,.64);
    const panel=document.querySelector('#temple-pages');
@@ -160,7 +164,10 @@ export function createInteriors(renderer,sites,orbMaterial){
   if(state.index<0){pages.hide();if(settle>0||exitReveal>0)hallOrb.visible=settle<=.15;if(settle<=.15&&exitReveal>0){exitReveal=Math.max(0,exitReveal-lastDt);orbMaterial.uniforms.glitch.value=motionReduced?0:exitReveal/.65;}if(settle>0&&anchor){pinScreenPoint(hallCamera,hallOrb.position,anchor,settle);matchScreenRadius(hallCamera,hallOrb,anchorRadius,settle);settle=Math.max(0,settle-lastDt*.5);}else hallOrb.scale.setScalar(1);renderCloudScene(renderer,hall,hallCamera);return}
   if(!startCamera){startCamera=hallCamera.clone();hallCamera.updateMatrixWorld();anchor=hallOrb.position.clone().project(hallCamera);anchorRadius=screenRadius(hallCamera,hallOrb);}
   const r=rooms[state.index],aspect=hallCamera.aspect,progress=state.blend;hallOrb.visible=state.target===1&&state.elapsed<.45&&!entry?.hideAtStart;
-  r.camera.aspect=aspect;r.camera.far=mobileFraming.matches?Math.max(100,80/aspect):100;r.camera.updateProjectionMatrix();
+  const far=mobileFraming.matches?Math.max(100,80/aspect):100;
+  if(r.camera.aspect!==aspect||r.camera.far!==far){
+   r.camera.aspect=aspect;r.camera.far=far;r.camera.updateProjectionMatrix();
+  }
   const distance=(1.4+(1-zoom)*.7)/Math.min(1,aspect);
   const orbPoint=new T.Vector3(state.x,1.45,state.z),close=orbPoint.clone().add(new T.Vector3(0,2.4,5));
   const wide=new T.Vector3(state.x*.3,18*distance,state.z*.3+20*distance);
@@ -181,12 +188,12 @@ export function createInteriors(renderer,sites,orbMaterial){
    const inside=focus.clone().addScaledVector(normal,.6);
    const aligned=outside.clone().lerp(inside,through);
    hallCamera.position.copy(startCamera.position).lerp(aligned,align);
-   const destination=hallCamera.clone();destination.lookAt(focus);
-   hallCamera.quaternion.copy(startCamera.quaternion).slerp(destination.quaternion,align);
+   aimCamera.position.copy(hallCamera.position);aimCamera.up.copy(hallCamera.up);aimCamera.lookAt(focus);
+   hallCamera.quaternion.copy(startCamera.quaternion).slerp(aimCamera.quaternion,align);
   }
   if(state.target===1){placeScreenPoint(hallCamera,hallOrb,anchor);}
 
-  pinScreenPoint(r.camera,new T.Vector3(0,0,0),new T.Vector3(0,0,0));
+  pinScreenPoint(r.camera,roomOrigin,roomOrigin);
   if(mobileFraming.matches && state.target===1){
    // Fit the floor and pillar caps within the viewport at the overview angle.
    r.camera.updateMatrixWorld();
@@ -236,11 +243,11 @@ export function createInteriors(renderer,sites,orbMaterial){
    const p2=travel<.5?inside.clone().sub(tangent):outside;
    const p3=travel<.5?inside:outside;
    r.camera.position.copy(p0).multiplyScalar(v*v*v).addScaledVector(p1,3*v*v*u).addScaledVector(p2,3*v*u*u).addScaledVector(p3,u*u*u);
-   const destination=exitCamera.clone();destination.position.copy(r.camera.position);
+   aimCamera.position.copy(r.camera.position);aimCamera.up.copy(exitCamera.up);
    const aim=exitNormal.clone().multiplyScalar(10);aim.y=3.5;
    if(r.camera.position.dot(exitNormal)>=9.9)aim.copy(r.camera.position).add(exitNormal);
-   destination.lookAt(aim);
-   r.camera.quaternion.copy(exitCamera.quaternion).slerp(destination.quaternion,align);
+   aimCamera.lookAt(aim);
+   r.camera.quaternion.copy(exitCamera.quaternion).slerp(aimCamera.quaternion,align);
    if(exitNormal.z>.5){
     // The overview already faces the bottom doorway from outside. Preserve
     // that view rather than crossing the entire room and turning 180 degrees.

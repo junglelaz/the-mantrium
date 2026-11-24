@@ -7,15 +7,25 @@ export function createPresence(scene,navigation,onSharedOpening,onViewVisitor){
  status.title='Show the nearest visitor';document.body.append(status);
  let nearest=null,visibleCount=0;
  status.onclick=()=>{if(enabled && nearest?.alive && nearest.mesh.visible)onViewVisitor(nearest);};
- const ring=new T.Mesh(new T.RingGeometry(.7,.75,64),new T.MeshBasicMaterial({color:'#cdebd9',transparent:true,opacity:0,side:T.DoubleSide,depthWrite:false}));ring.rotation.x=-Math.PI/2;group.add(ring);let pulseAge=10;
+ const ring=new T.Mesh(new T.RingGeometry(.7,.75,64),new T.MeshBasicMaterial({color:'#cdebd9',transparent:true,opacity:0,side:T.DoubleSide,depthWrite:false}));ring.visible=false;ring.rotation.x=-Math.PI/2;group.add(ring);let pulseAge=10;
  const visit=globalThis.crypto?.randomUUID?.() || '';
  let pendingOpening=false,receivedOpening=null;
  const pointer=matchMedia('(pointer:coarse)'); let lastSent=null; const delta=new T.Vector3(),test=new T.Vector3(); let enabled=false;const pulseLabel=()=>pointer.matches?'Send a pulse':'Send a pulse · P';
  function sendPulse(){if(!enabled||cooldown>0||document.hidden)return;pulse=true;cooldown=6;pulseAge=0;button.textContent='Light sent';}
  button.onclick=sendPulse;addEventListener('keydown',e=>{if(e.key.toLowerCase()==='p'&&!e.repeat&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)&&!document.activeElement.isContentEditable)sendPulse()});
- return {announceOpening(){pendingOpening=true;},sendPulse,get bodies(){return [...peers.values()].filter(p=>p.alive&&p.mesh.visible).map(p=>({owner:p,x:p.mesh.position.x,z:p.mesh.position.z,y:p.mesh.position.y,radius:.65}))},update(dt,player,pigments,active,entered){enabled=active;group.visible=active;if(button.hidden===active)button.hidden=!active;cooldown=Math.max(0,cooldown-dt);if(button.disabled!==(cooldown>0))button.disabled=cooldown>0;const label=cooldown>0?'Pulse ready in '+Math.ceil(cooldown)+'s':pulseLabel();if(button.textContent!==label)button.textContent=label;pulseAge+=dt;ring.position.set(player.x,player.height+.08,player.z);ring.scale.setScalar(1+pulseAge*3);ring.material.opacity=Math.max(0,.35-pulseAge*.18);
+ return {announceOpening(){pendingOpening=true;},sendPulse,get bodies(){return [...peers.values()].filter(p=>p.alive&&p.mesh.visible).map(p=>({owner:p,x:p.mesh.position.x,z:p.mesh.position.z,y:p.mesh.position.y,radius:.65}))},update(dt,player,pigments,active,entered){enabled=active;group.visible=active;if(button.hidden===active)button.hidden=!active;cooldown=Math.max(0,cooldown-dt);if(button.disabled!==(cooldown>0))button.disabled=cooldown>0;const label=cooldown>0?'Pulse ready in '+Math.ceil(cooldown)+'s':pulseLabel();if(button.textContent!==label)button.textContent=label;pulseAge+=dt;
+  const opacity=Math.max(0,.35-pulseAge*.18);
+  ring.visible=opacity>0;
+  if(ring.visible){
+   ring.position.set(player.x,player.height+.08,player.z);
+   ring.scale.setScalar(1+pulseAge*3);ring.material.opacity=opacity;
+  }
   let count=0,closest=Infinity;nearest=null;
-  for(const [id,p] of peers){if(!p.placed){const blocked=navigation.orbs.some(o=>o.owner!==p&&Math.hypot(p.target.x-o.x,p.target.y-o.y,p.target.z-o.z)<.65+o.radius+.08);p.mesh.visible=active&&!blocked;if(blocked)continue;p.mesh.position.copy(p.target);p.placed=true;}else p.mesh.visible=active;delta.subVectors(p.target,p.mesh.position).multiplyScalar(1-Math.exp(-dt*4));const steps=Math.max(1,Math.ceil(delta.length()/.12));delta.divideScalar(steps);for(let i=0;i<steps;i++){test.copy(p.mesh.position).add(delta);if(navigation.orbs.some(o=>o.owner!==p&&Math.hypot(test.x-o.x,test.y-o.y,test.z-o.z)<.65+o.radius+.06))break;p.mesh.position.copy(test);}p.mesh.material.opacity=T.MathUtils.damp(p.mesh.material.opacity,p.alive?.84:0,3,dt);if(!p.alive&&p.mesh.material.opacity<.01){group.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();peers.delete(id)}
+  for(const [id,p] of peers){
+   if(!p.alive&&(!p.placed||p.mesh.material.opacity<.01)){
+    group.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();peers.delete(id);continue;
+   }
+   if(!p.placed){const blocked=navigation.orbs.some(o=>o.owner!==p&&Math.hypot(p.target.x-o.x,p.target.y-o.y,p.target.z-o.z)<.65+o.radius+.08);p.mesh.visible=active&&!blocked;if(blocked)continue;p.mesh.position.copy(p.target);p.placed=true;}else p.mesh.visible=active;delta.subVectors(p.target,p.mesh.position).multiplyScalar(1-Math.exp(-dt*4));const steps=Math.max(1,Math.ceil(delta.length()/.12));delta.divideScalar(steps);for(let i=0;i<steps;i++){test.copy(p.mesh.position).add(delta);if(navigation.orbs.some(o=>o.owner!==p&&Math.hypot(test.x-o.x,test.y-o.y,test.z-o.z)<.65+o.radius+.06))break;p.mesh.position.copy(test);}p.mesh.material.opacity=T.MathUtils.damp(p.mesh.material.opacity,p.alive?.84:0,3,dt);
    if(active&&p.placed&&p.alive&&p.mesh.visible){count++;const pos=p.mesh.position,d=(pos.x-player.x)**2+(pos.z-player.z)**2+(pos.y-player.height-1.45)**2;if(d<closest){closest=d;nearest=p;}}
   }
   if(count!==visibleCount){visibleCount=count;status.hidden=!count;status.textContent=count?count+' nearby visitor'+(count===1?'':'s')+' · View':'';}
