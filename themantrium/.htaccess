@@ -1,0 +1,6 @@
+# The hall is a static HTML entry point. Live API responses use their own policies.
+<IfModule mod_headers.c>
+    SetEnvIf Request_URI "^/themantrium/(index[.]html)?$" mantrium_public_hall
+    Header set Cache-Control "public, max-age=0" env=mantrium_public_hall
+    Header set Cloudflare-CDN-Cache-Control "public, max-age=300, stale-if-error=86400" env=mantrium_public_hall
+</IfModule>
