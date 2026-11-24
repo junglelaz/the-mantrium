@@ -1,5 +1,5 @@
 import {threePMStory} from './threepm-story.js?v=spacing237';
-import {jungleLazStudy} from './jungle-laz-study.js?v=3';
+import {jungleLazStudy} from './jungle-laz-study.js?v=orb-media1';
 import {true2natureStudy} from './true2nature-study.js?v=spacing237';
 // Project and case-study descriptions supplied by Mantrium. Comparison media awaits delivery.
 const projects=[
@@ -202,12 +202,11 @@ export function createTemplePages({leave,select,onOpen=()=>{},onRoom=()=>{}}){
  reading.addEventListener('scroll',updateReading,{passive:true});addEventListener('resize',updateReading);
 
  function fadeExit(){const heading=root.querySelector('.gallery-heading');if(root.hidden||gallery.hidden)return;const bounds=heading.getBoundingClientRect(),copy=heading.cloneNode(true);copy.setAttribute('aria-hidden','true');Object.assign(copy.style,{position:'fixed',left:bounds.left+'px',top:bounds.top+'px',width:bounds.width+'px',maxWidth:'none',right:'auto',margin:'0',zIndex:'30',pointerEvents:'none'});document.body.append(copy);const animation=copy.animate([{opacity:getComputedStyle(heading).opacity},{opacity:0}],{duration:matchMedia('(prefers-reduced-motion:reduce)').matches?160:750,easing:'ease-out',fill:'forwards'});animation.onfinish=()=>copy.remove();}
- function pauseMedia(){for(const video of content.querySelectorAll('video'))video.pause();content.querySelector('.jungle-youtube')?.remove();}
- function hide(){if(root.hidden&&!opening&&!arrowFrame)return;pauseMedia();cancelOpening();stopArrowScroll();root.hidden=true;document.body.classList.remove('temple-ui','temple-reading-open','temple-gallery')}
+ function hide(){if(root.hidden&&!opening&&!arrowFrame)return;dispatchEvent(new Event('mantrium:reading-close'));cancelOpening();stopArrowScroll();root.hidden=true;document.body.classList.remove('temple-ui','temple-reading-open','temple-gallery')}
  function showGallery(){mode='gallery';item=-1;reading.hidden=true;reading.classList.remove('closing');gallery.hidden=false;back.hidden=true;document.body.classList.remove('temple-reading-open');progressTrack.hidden=true;
   if(index>=2){root.querySelector('.gallery-heading .eyebrow').textContent='TEMPLE OF '+(index===2?'INTELLIGENCE':'ORIGIN');root.querySelector('.gallery-heading h2').textContent=index===2?'Human vision. Intelligent systems.':'Everything begins with intention.';root.querySelector('.gallery-heading p').textContent='Approach the pedestal to explore.';labels.innerHTML='<button class="pedestal-choice resume-reading">Approach the pedestal</button>';labels.querySelector('button').onclick=()=>select(0);galleryButtons=[...labels.querySelectorAll('button')];}
  }
- function closePage(){if(mode!=='reading'||opening)return;pauseMedia();stopArrowScroll();mode='returning';hasScrolled=false;reading.classList.add('closing');onRoom();clearTimeout(closeTimer);closeTimer=setTimeout(()=>{closeTimer=null;showGallery()},500);}
+ function closePage(){if(mode!=='reading'||opening)return;dispatchEvent(new Event('mantrium:reading-close'));stopArrowScroll();mode='returning';hasScrolled=false;reading.classList.add('closing');onRoom();clearTimeout(closeTimer);closeTimer=setTimeout(()=>{closeTimer=null;showGallery()},500);}
 
  const motifs=[['Imagine','Shape','Create'],['Question','Explore','Understand'],['Vision','Craft','Systems','Intelligence'],['Intention','Perspective','Practice','Connection']];
  const principles=[['A world worth entering.','Technology with a human purpose.','Make room for possibility.'],['Every decision tells a story.','Clarity is a form of care.','Understanding changes everything.'],['See clearly. Think deeply.','Make ideas tangible.','Build for what comes next.','Let people lead.'],['Begin with a worthwhile question.','Ancient wisdom. Future systems.','The detail is part of the idea.','Meaning grows through connection.']];
@@ -224,10 +223,6 @@ export function createTemplePages({leave,select,onOpen=()=>{},onRoom=()=>{}}){
    data.sections.map(([title,text],i)=>{const side=i%2===0?'right':'left',kind=['statement','split','framed','manifesto'][(i+index)%4];return `<section class="chapter chapter-${kind} copy-${side}" data-section="${i}" data-orb-side="${side==='right'?'left':'right'}">${ornament(i)}<div class="chapter-copy"><div class="chapter-meta"><span class="section-number">${String(i+1).padStart(2,'0')}</span><span>${motifs[index][i]}</span></div><h2>${title.replace(/^\d+ · /,'')}</h2><p>${text}</p><div class="chapter-note">${principles[index][i]}</div></div></section>`;}).join('')+
    (index===0&&which===0?threePMStory():index===1?(which===1?true2natureStudy():which===0?comparisonPlaceholders():which===2?jungleLazStudy():''):'')+
    '<div class="reading-end" data-orb-side="right"><div><span class="eyebrow">CARRY THE IDEA WITH YOU</span><h2>Every return is<br><em>a new beginning.</em></h2><button data-finish>Return to the Mantrium <span class="cta-arrow" aria-hidden="true"></span></button></div></div>';
-  for(const video of content.querySelectorAll('video')){
-   video.addEventListener('play',()=>{for(const other of content.querySelectorAll('video'))if(other!==video)other.pause();});
-   for(const type of ['keydown','keyup'])video.addEventListener(type,event=>event.stopPropagation());
-  }
   stages=[...content.querySelectorAll('[data-orb-side]')];chapters=[...content.querySelectorAll('section')];
   content.querySelector('[data-finish]').onclick=()=>{leave()};reading.hidden=false;gallery.hidden=true;back.hidden=index>=2;back.innerHTML='<svg class="ui-arrow" width="1em" height="1em" aria-hidden="true" focusable="false"><use href="public/ui-arrows.svg#left"></use></svg> '+(index===0?'All projects':'All studies');progressTrack.hidden=false;document.body.classList.add('temple-reading-open');reading.scrollTo({top:0,left:0,behavior:'instant'});progress=0;active=0;orbAnchor={x:.54,y:-.12};reading.focus({preventScroll:true});openingAnimation=content.querySelector('.hero-copy').animate([{opacity:0},{opacity:1}],{duration:matchMedia('(prefers-reduced-motion:reduce)').matches?0:900,easing:'ease',fill:'none'});openingAnimation.onfinish=()=>{fadeReady=true;unlockOpening();};requestAnimationFrame(()=>{updateReading();updateGlassLettering();});
  }

@@ -83,7 +83,7 @@ export function createInteriors(renderer,sites,orbMaterial){
  // Translate along camera-local axes to preserve an exact normalized screen point.
 
 
- let selection=null,readingFollow=0,roomReturn=null,roomPosition={x:0,z:8},pedestalArmed=true;const readingAnchor=new T.Vector3(.54,-.12,0);
+ let selection=null,readingFollow=0,roomReturn=null,roomPosition={x:0,z:8},pedestalArmed=true;let mobileFilmBlend=0;const readingAnchor=new T.Vector3(.54,-.12,0);
  const pages=createTemplePages({leave,onOpen:()=>{roomPosition={x:state.x,z:state.z};roomReturn=null;pedestalArmed=false;},onRoom:()=>{selection=null;roomReturn={...roomPosition};pedestalArmed=false;},select:i=>{if(state.index<0||state.index>3||selection)return;const e=rooms[state.index].exhibits[i];selection={i,x:e.x,z:e.z+2.1};}});
  const raycaster=new T.Raycaster(),mouse=new T.Vector2();let mousePedestal=-1;
  function pickPedestal(event){
@@ -97,7 +97,7 @@ export function createInteriors(renderer,sites,orbMaterial){
  document.addEventListener('click',event=>{const i=pickPedestal(event);if(i<0)return;const e=rooms[state.index].exhibits[i];selection={i,x:e.x,z:e.z+2.1};mousePedestal=-1;renderer.domElement.style.cursor='';});
  function enter(index,exit,arrival){if(state.index>=0)return;
   rooms[index] ??= buildRoom(index);
-  pages.reset();selection=null;readingFollow=0;roomReturn=null;roomPosition={x:0,z:8};pedestalArmed=true;entry=arrival;startCamera=null;anchor=null;settle=0;roomSettle=1;deferOrb=true;reveal=0;exitReveal=0;if(state.index>=0)return;state.index=index;document.body.classList.add('interior-active');state.target=1;state.x=0;state.z=8;state.elapsed=0;onExit=exit;}
+  pages.reset();selection=null;readingFollow=0;mobileFilmBlend=0;roomReturn=null;roomPosition={x:0,z:8};pedestalArmed=true;entry=arrival;startCamera=null;anchor=null;settle=0;roomSettle=1;deferOrb=true;reveal=0;exitReveal=0;if(state.index>=0)return;state.index=index;document.body.classList.add('interior-active');state.target=1;state.x=0;state.z=8;state.elapsed=0;onExit=exit;}
  function leave(walkedThrough=null){if(state.index<0||!state.target)return;pages.fadeExit();pages.hide();selection=null;const r=rooms[state.index];r.camera.updateMatrixWorld();exitCamera=r.camera.clone();
  const edge=walkedThrough?Math.max(Math.abs(walkedThrough.x),Math.abs(walkedThrough.z)):0;
  exitNormal.set(1,0,0);
@@ -133,7 +133,7 @@ export function createInteriors(renderer,sites,orbMaterial){
  function render(hall,hallCamera,zoom,hallOrb,menuBlend=0){
   if(menuBlend>0&&state.index>=0){
    const r=rooms[state.index];
-   if(!menuCamera||menuRoom!==state.index){menuCamera=r.camera.clone();menuRoom=state.index;}
+   if(!menuCamera||menuRoom!==state.index){screenshotOrb.dismiss(false);menuCamera=r.camera.clone();menuRoom=state.index;}
    // Map the exterior roof plane into the room's 22-unit square. Both
    // cameras then project the same four corners throughout the dissolve.
    const site=sites[state.index],scale=5.15/22;
@@ -223,9 +223,15 @@ export function createInteriors(renderer,sites,orbMaterial){
   // Preserve the orb's world position and size; the entire room moves closer through the camera.
   if(state.target===1)matchScreenRadius(hallCamera,hallOrb,anchorRadius);matchScreenRadius(r.camera,r.orb,anchorRadius);
   const focusPoint=r.orb.position.clone();
-  const framingDistance=screenRadius(r.camera,r.orb)/(.27*aspect);
+  const mobileFilm=screenshotOrb.mobileVideoOpen;
+  if(mobileFilmBlend!==Number(mobileFilm)){
+   mobileFilmBlend=T.MathUtils.damp(mobileFilmBlend,Number(mobileFilm),7,lastDt);
+   if(motionReduced||Math.abs(mobileFilmBlend-Number(mobileFilm))<.001)mobileFilmBlend=Number(mobileFilm);
+  }
+  const readingRadius=T.MathUtils.lerp(.27*aspect,Math.min(.86*aspect,.65),mobileFilmBlend);
+  const framingDistance=screenRadius(r.camera,r.orb)/readingRadius;
   r.camera.position.lerp(focusPoint.clone().add(r.camera.position.clone().sub(focusPoint).multiplyScalar(framingDistance)),readingFollow);
-  const desiredReadingAnchor=new T.Vector3(pages.orbAnchor.x,pages.orbAnchor.y,0);
+  const desiredReadingAnchor=new T.Vector3(mobileFilm?0:pages.orbAnchor.x,mobileFilm ? .08 : pages.orbAnchor.y,0);
   // Move only the camera between editorial lanes; the orb stays at its pedestal.
   readingAnchor.lerp(desiredReadingAnchor,motionReduced?1:1-Math.exp(-4*lastDt));
   pinScreenPoint(r.camera,focusPoint,readingAnchor,readingFollow);
