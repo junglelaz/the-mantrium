@@ -16,6 +16,11 @@ export function matchScreenRadius(camera,orb,radius,amount=1){camera.updateMatri
 export function createInteriors(renderer,sites,orbMaterial){
  const screenshotOrb=createScreenshotOrb();
  const state={index:-1,blend:0,target:0,x:0,z:8,elapsed:0};
+ const mobileFraming=matchMedia('(pointer:coarse), (max-width:650px)');
+ const roomBounds=[],viewCorner=new T.Vector3();
+ for(const [radius,height] of [[11,-1],[11,0],[10.6,7.15]]){
+  for(const x of [-radius,radius])for(const z of [-radius,radius])roomBounds.push(new T.Vector3(x,height,z));
+ }
  const rooms=[];
  function buildRoom(index){
   const site=sites[index];
@@ -150,7 +155,7 @@ export function createInteriors(renderer,sites,orbMaterial){
   if(state.index<0){pages.hide();if(settle>0||exitReveal>0)hallOrb.visible=settle<=.15;if(settle<=.15&&exitReveal>0){exitReveal=Math.max(0,exitReveal-lastDt);orbMaterial.uniforms.glitch.value=motionReduced?0:exitReveal/.65;}if(settle>0&&anchor){pinScreenPoint(hallCamera,hallOrb.position,anchor,settle);matchScreenRadius(hallCamera,hallOrb,anchorRadius,settle);settle=Math.max(0,settle-lastDt*.5);}else hallOrb.scale.setScalar(1);renderCloudScene(renderer,hall,hallCamera);return}
   if(!startCamera){startCamera=hallCamera.clone();hallCamera.updateMatrixWorld();anchor=hallOrb.position.clone().project(hallCamera);anchorRadius=screenRadius(hallCamera,hallOrb);}
   const r=rooms[state.index],aspect=hallCamera.aspect,progress=state.blend;hallOrb.visible=state.target===1&&state.elapsed<.45&&!entry?.hideAtStart;
-  r.camera.aspect=aspect;r.camera.updateProjectionMatrix();
+  r.camera.aspect=aspect;r.camera.far=mobileFraming.matches?Math.max(100,80/aspect):100;r.camera.updateProjectionMatrix();
   const distance=(1.4+(1-zoom)*.7)/Math.min(1,aspect);
   const orbPoint=new T.Vector3(state.x,1.45,state.z),close=orbPoint.clone().add(new T.Vector3(0,2.4,5));
   const wide=new T.Vector3(state.x*.3,18*distance,state.z*.3+20*distance);
@@ -176,7 +181,21 @@ export function createInteriors(renderer,sites,orbMaterial){
   }
   if(state.target===1){placeScreenPoint(hallCamera,hallOrb,anchor);}
 
-  pinScreenPoint(r.camera,new T.Vector3(0,0,0),new T.Vector3(0,0,0));placeScreenPoint(r.camera,r.orb,anchor,progress<1?1:roomSettle);
+  pinScreenPoint(r.camera,new T.Vector3(0,0,0),new T.Vector3(0,0,0));
+  if(mobileFraming.matches && state.target===1){
+   // Fit the floor and pillar caps within the viewport at the overview angle.
+   r.camera.updateMatrixWorld();
+   const tangent=Math.tan(T.MathUtils.degToRad(r.camera.fov/2));
+   let shift=-Infinity;
+   for(const corner of roomBounds){
+    viewCorner.copy(corner).applyMatrix4(r.camera.matrixWorldInverse);
+    shift=Math.max(shift,viewCorner.z+Math.abs(viewCorner.x)/(.94*aspect*tangent),
+     viewCorner.z+Math.abs(viewCorner.y)/(.94*tangent));
+   }
+   r.camera.translateZ(shift*T.MathUtils.smoothstep(progress,.35,1));
+   r.camera.updateMatrixWorld();
+  }
+  placeScreenPoint(r.camera,r.orb,anchor,progress<1?1:roomSettle);
 
   readingFollow=T.MathUtils.damp(readingFollow,progress===1&&roomSettle<=.15&&pages.mode==='reading'?1:0,1.5,lastDt);
   // Preserve the orb's world position and size; the entire room moves closer through the camera.
