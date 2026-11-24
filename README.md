@@ -2,6 +2,12 @@
 
 The interactive 3D sanctuary at [mantrium.io/themantrium](https://mantrium.io/themantrium/). This review snapshot contains the fluid251 source, local Three.js dependencies, scene assets and PHP endpoints.
 
+## Project focus
+
+An exploration of spatial storytelling and an immersive portfolio experience, connecting creative direction, interaction design and browser-based 3D. The public source lets reviewers inspect the arrival sequence, scene navigation, atmosphere and content presentation.
+
+**Experience:** [Open The Mantrium](https://mantrium.io/themantrium/)
+
 ## Review the experience
 
 Start in [index.html](themantrium/index.html). The [arrival sequence](themantrium/arrival-fluid251.js) loads the [scene and controls](themantrium/app-fluid251.js). [Cloud rendering](themantrium/clouds-fluid251.js) handles ambient drift, orb movement and desktop hover. [Temple interiors](themantrium/interiors-fluid251.js) and [reading panels](themantrium/temple-pages-fluid248.js) handle the portfolio experience. Server-side handlers live in [api](themantrium/api/).
