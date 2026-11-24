@@ -54,13 +54,15 @@ export function createSecret(scene,structure,stone){
  let outside=[];
  function bridgeHeight(x,z,y,id){if((id===102||id===106)&&coordinates(crossings[id-100],x,z).along<0)return y;return settledHeight(x,z,y,state.amount);}
  function deform(){for(const {m,original} of shapes){const p=m.geometry.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,bridgeHeight(original[i*3],original[i*3+2],original[i*3+1],m.userData.secretCrossing===undefined?9:100+m.userData.secretCrossing));p.needsUpdate=true;m.geometry.computeVertexNormals();m.geometry.computeBoundingSphere();}}
- function unlock(){if(state.phase!=='locked')return false;state.phase='lowering';state.elapsed=0;return true}
+ let sharedEntryGuard=false;
+ function unlock(shared=false){if(state.phase!=='locked')return false;sharedEntryGuard=shared;state.phase='lowering';state.elapsed=0;return true}
  function update(dt,player){
   const hadReveal=exitReveal>0;exitReveal=Math.max(0,exitReveal-dt);state.justReturned=hadReveal&&exitReveal===0;if(exitTime>=0){exitTime+=dt;if(exitTime>=1.1){leave(player);exitReveal=1.2;}return;}
   if(chamber.visible){const t=performance.now()/1000;for(let i=0;i<moteBase.length;i++){const b=moteBase[i];moteGeometry.attributes.position.setXYZ(i,b[0]+Math.sin(t*.12+i)*.3,b[1]+Math.sin(t*.1+i*1.7)*.35,b[2]+Math.cos(t*.09+i)*.3);}moteGeometry.attributes.position.needsUpdate=true;guruLight.intensity=22+Math.sin(t*.18)*1.2;atmosphere.update(performance.now()/1000,false);mist.update(performance.now()/1000,false,undefined,false,player);}
   if(state.phase==='lowering'){state.elapsed+=dt;state.amount=T.MathUtils.smoothstep(state.elapsed,0,4);deform();if(state.elapsed>=4){state.phase='opening';state.elapsed=0;}}
   else if(state.phase==='opening'){state.elapsed+=dt;state.radius.value=1.9*T.MathUtils.smoothstep(state.elapsed,0,2);rim.visible=shaft.visible=apertureLight.visible=true;spill.intensity=65*state.radius.value/1.9;glow.material.opacity=.5*state.radius.value/1.9;rim.scale.setScalar(Math.max(.001,state.radius.value/1.9));if(state.elapsed>=2)state.phase='open';}
-  if(state.phase==='open'&&Math.hypot(player.x,player.z)<1.2){state.phase='falling';state.fall=0;}
+  if(state.phase==='open'&&Math.hypot(player.x,player.z)>=1.2)sharedEntryGuard=false;
+  if(state.phase==='open'&&!sharedEntryGuard&&Math.hypot(player.x,player.z)<1.2){state.phase='falling';state.fall=0;}
   if(state.phase==='chamber')state.arrival+=dt;
   if(state.phase==='falling'){state.fall+=dt;player.x*=Math.exp(-dt*3);player.z*=Math.exp(-dt*3);player.height-=Math.min(20,state.fall*9)*dt;if(player.height<=-62){player.height=-62;state.phase='chamber';state.arrival=0;player.x=0;player.z=4.2;outside=scene.children.filter(o=>o!==chamber&&(o.isMesh||o.isGroup||o.isPoints)&&o.visible);outside.forEach(o=>o.visible=false);chamber.visible=true;}}
  }

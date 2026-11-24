@@ -315,7 +315,9 @@ const interiors=createInteriors(renderer,templeSites,orbMat);
 let templeCooldown=0;
 const secret=createSecret(scene,secretStructure,stone);
 const inhabitants=createInhabitants(scene,navigation,camera);
-const presence=createPresence(scene,navigation);
+const presence=createPresence(scene,navigation,()=>{
+ if(secret.unlock(true)){score.cue('lowering');notify('Someone opened the Secret Sanctum...');}
+});
 navigation.heightTransform=(x,z,y,id)=>[9,102,106].includes(id)?secret.height(x,z,y,id):y;
 const mobileView=matchMedia('(any-pointer:coarse), (max-width:650px)').matches||navigator.maxTouchPoints>0;
 let zoomTarget=mobileView?.72:1,zoomBlend=zoomTarget;
@@ -381,7 +383,7 @@ function checkTemple(){
 
  const next=templeAt(player.x,player.z,player.height),event=journey.update(next);
  if(event.exited>=0){const site=templeSites[event.exited];visited=true;pigmentAt=performance.now()/1000;if(score.gains)score.addTemple(event.exited);orbMat.uniforms.pigment.value=0;const colours=[...journey.completed].map(i=>new T.Color(templeSites[i].color));const tint=new T.Color(0,0,0);colours.forEach(c=>tint.add(c));tint.multiplyScalar(1/colours.length);orbMat.uniforms.tint.value.copy(tint);orbMat.uniforms.colourCount.value=colours.length-1;colours.forEach((c,i)=>orbMat.uniforms.palette.value[i].copy(c));notify(site.name+' stays with you. '+site.pigment[0].toUpperCase()+site.pigment.slice(1)+' and a new harmony emerge together.')}
- if(journey.completed.size===4&&secret.unlock()){score.cue('lowering');notify('Four temples visited. The central bridge is descending.');}
+ if(journey.completed.size===4&&secret.unlock()){score.cue('lowering');presence.announceOpening();notify('Someone opened the Secret Sanctum...');}
  inside=next>=0;const site=templeSites[next];
  if(event.entered>=0&&performance.now()>templeCooldown){notify('Welcome to '+site.name+'. '+site.theme+'.');interiors.enter(next,()=>{templeCooldown=performance.now()+1800;orb.visible=true;checkTemple();},{prepareExit:()=>{restoreHallPosition(site);visualHeight=player.height;velocity.set(0,0);},hideAtStart:!orb.visible,x:player.x,z:player.z,height:player.height,dx:(lastHallPosition.x-site.x)/Math.max(.01,Math.hypot(lastHallPosition.x-site.x,lastHallPosition.z-site.z)),dz:(lastHallPosition.z-site.z)/Math.max(.01,Math.hypot(lastHallPosition.x-site.x,lastHallPosition.z-site.z))});}
  setText(hudElements.zone,site?'TEMPLE OF '+site.name.toUpperCase():'THE CENTRAL CROSSING');
@@ -480,7 +482,7 @@ const speechCameraSettled=(reduced||now-descent>=4500)&&!quickNav.active&&!quick
 const muteSpeech=secret.exiting||!entered||!speechCameraSettled||zoomBlend<speechZoomLimit||zoomTarget<speechZoomLimit;
 if(document.body.classList.contains('speech-muted')!==muteSpeech)document.body.classList.toggle('speech-muted',muteSpeech);
 fireflies.update(dt,t,orb.position,interiors.state.index<0&&!secret.fade&&secret.state.phase!=='chamber',reduced,innerHeight*renderer.getPixelRatio());
-{const body=navigation.orbs.find(o=>o.owner==='player');if(body){body.x=player.x;body.z=player.z;body.y=player.height+FLOAT_HEIGHT;}}presence.update(dt,player,[...journey.completed].reduce((mask,i)=>mask|(1<<i),0),entered&&!templeTransfer&&interiors.state.index<0&&!['falling','chamber'].includes(secret.state.phase));inhabitants.update(dt,t,player,journey.completed.size,!templeTransfer&&interiors.state.index<0&&secret.state.phase!=='falling',reduced,orb.position,secret.state.phase==='chamber',!muteSpeech);updateCanvasPresentation(renderer.domElement, 1 - secret.fade, zoomBlend);scene.fog.color.set(secret.state.phase==='chamber'?'#a4b9bd':'#284449');scene.fog.density=secret.state.phase==='chamber'?.018:.009*Math.min(1,105/Math.max(20,camera.position.y));scene.fog.density=T.MathUtils.lerp(scene.fog.density,.0008,quickNav.blend);updateOrbShadow(orb.visible&&interiors.state.index<0&&secret.state.phase!=='falling'&&secret.state.phase!=='chamber');bloom.render(()=>menuActive&&interiors.state.index<0?renderCloudScene(renderer,scene,camera):interiors.render(scene,camera,zoomBlend,orb,quickNav.blend))}
+{const body=navigation.orbs.find(o=>o.owner==='player');if(body){body.x=player.x;body.z=player.z;body.y=player.height+FLOAT_HEIGHT;}}presence.update(dt,player,[...journey.completed].reduce((mask,i)=>mask|(1<<i),0),entered&&!templeTransfer&&interiors.state.index<0&&!['falling','chamber'].includes(secret.state.phase),entered);inhabitants.update(dt,t,player,journey.completed.size,!templeTransfer&&interiors.state.index<0&&secret.state.phase!=='falling',reduced,orb.position,secret.state.phase==='chamber',!muteSpeech);updateCanvasPresentation(renderer.domElement, 1 - secret.fade, zoomBlend);scene.fog.color.set(secret.state.phase==='chamber'?'#a4b9bd':'#284449');scene.fog.density=secret.state.phase==='chamber'?.018:.009*Math.min(1,105/Math.max(20,camera.position.y));scene.fog.density=T.MathUtils.lerp(scene.fog.density,.0008,quickNav.blend);updateOrbShadow(orb.visible&&interiors.state.index<0&&secret.state.phase!=='falling'&&secret.state.phase!=='chamber');bloom.render(()=>menuActive&&interiors.state.index<0?renderCloudScene(renderer,scene,camera):interiors.render(scene,camera,zoomBlend,orb,quickNav.blend))}
 const updateOrbShadow=createOrbShadow(scene,orb,sun);
 requestAnimationFrame(animate);addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});if(location.hash==='#work'||location.hash==='#studio')showPage(location.hash.slice(1));
 

@@ -30,10 +30,20 @@ $state = json_decode(stream_get_contents($handle),true) ?: [];
 foreach ($state as $key=>$peer) if ($now-($peer['seen']??0)>15) unset($state[$key]);
 if(count($state)>=200 && !isset($state[$id])) {flock($handle,LOCK_UN);fclose($handle);http_response_code(503);echo '{"peers":[]}';exit;}
 $old=$state[$id]??[];
+$visit=$input['visit']??'';
+if(!is_string($visit)||!preg_match('/^[a-f0-9-]{36}$/D',$visit)) $visit='';
+$same=$visit!=='' && ($old['visit']??'')===$visit;
+$shared=$same && !empty($old['shared']);
+$announced=$same && !empty($old['announced']);
+if($visit!=='' && !$announced && $mask===15 && ($input['opened']??false)===true){
+ foreach($state as $key=>&$recipient) if($key!==$id && !empty($recipient['visit'])) $recipient['shared']=true;
+ unset($recipient);
+ $announced=true;
+}
 $pulse=$old['pulse']??0;
 if(!empty($input['pulse'])&&$now-$pulse>6)$pulse=$now;
-$state[$id]=['id'=>$id,'x'=>$x,'y'=>$y,'z'=>$z,'zone'=>$zone,'pigments'=>$mask,'seen'=>$now,'pulse'=>$pulse];
-$peers=[];foreach($state as $key=>$peer)if($key!==$id&&$peer['zone']===$zone){$d=hypot($peer['x']-$x,$peer['z']-$z);if($d<35){$peer['distance']=$d;unset($peer['seen']);$peers[]=$peer;}}
+$state[$id]=['id'=>$id,'x'=>$x,'y'=>$y,'z'=>$z,'zone'=>$zone,'pigments'=>$mask,'seen'=>$now,'pulse'=>$pulse,'visit'=>$visit,'shared'=>$shared,'announced'=>$announced];
+$peers=[];foreach($state as $key=>$peer)if($key!==$id&&$peer['zone']===$zone){$d=hypot($peer['x']-$x,$peer['z']-$z);if($d<35){$peer['distance']=$d;unset($peer['seen'],$peer['visit'],$peer['shared'],$peer['announced']);$peers[]=$peer;}}
 usort($peers,function($a,$b){return $a['distance']<=>$b['distance'];});
 ftruncate($handle,0);rewind($handle);fwrite($handle,json_encode($state));fflush($handle);flock($handle,LOCK_UN);fclose($handle);
-echo json_encode(['id'=>$id,'peers'=>array_slice($peers,0,8),'time'=>$now]);
+echo json_encode(['id'=>$id,'peers'=>array_slice($peers,0,8),'time'=>$now,'shared'=>$shared,'announced'=>$announced]);
