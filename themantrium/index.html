@@ -31,6 +31,7 @@
  }
  @media(max-width:650px){body.temple-gallery{--pad-center:112px}}
  @media(max-height:520px) and (orientation:landscape){body.temple-gallery{--pad-center:84px}}
+ @media(pointer:coarse),(max-width:650px){body:not(.speech-muted) .speech-bubble:not([hidden]):not(.chat-departing){pointer-events:auto;touch-action:manipulation}}
  </style></head><body class="is-loading">
 <div id="arrival" role="status" aria-live="polite"><div class="arrival-aura"></div><img src="public/mark.svg" alt="" class="arrival-mark"><span class="arrival-name">MANTRIUM</span><span id="arrival-status" aria-live="off">Your sanctuary awaits...</span><span class="arrival-track"><i></i></span></div>
 <canvas id="world" aria-label="Mantrium sanctuary. Use arrow keys or WASD to move after entering."></canvas><div class="shade"></div>
