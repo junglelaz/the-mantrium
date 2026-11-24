@@ -50,7 +50,12 @@
  #contact-form label:has(textarea)>span{display:inline;font-size:.9em}
  #contact-form textarea{display:block;margin-top:5px;height:clamp(56px,10dvh,84px)}
  #contact-form .contact-status:empty{display:none}
+ #contact-form button[type=submit]{margin-bottom:4px}
  .contact-panel .contact-direct{margin-top:4px}
+ header .brand{position:relative;overflow:visible}
+ header .brand:is(:hover,:active,:focus-visible) img{filter:brightness(0) invert(1)}
+ header .brand::before{content:"";position:absolute;pointer-events:none;left:-14px;top:50%;transform:translateY(-50%);width:calc(28px + 28px);height:56px;background:radial-gradient(ellipse,#d6f7ea66,transparent 68%);opacity:0;transition:opacity .3s ease}
+ header .brand:is(:hover,:active,:focus-visible)::before{opacity:1}
  }
  @media (pointer:coarse),(max-width:650px){
  body footer.fitted-controls{left:var(--guide-left);right:var(--guide-right);max-width:none;padding-inline:0}
