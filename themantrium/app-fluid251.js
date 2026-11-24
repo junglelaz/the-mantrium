@@ -315,8 +315,31 @@ const interiors=createInteriors(renderer,templeSites,orbMat);
 let templeCooldown=0;
 const secret=createSecret(scene,secretStructure,stone);
 const inhabitants=createInhabitants(scene,navigation,camera);
+let sanctumSequence=null;
+function playSanctumOpening(){
+ if(sanctumSequence)return;
+ score.cue('lowering');
+ const duration=2500,frames=[];
+ const quiet=matchMedia('(prefers-reduced-motion:reduce)').matches;
+ for(let i=0;i<=75;i++){
+  const u=i/75,t=u*duration/1000;
+  const strength=quiet?0:Math.min(1,u*8,(1-u)*5);
+  const x=(Math.sin(t*43)+.55*Math.sin(t*71))*4*strength;
+  const y=(Math.sin(t*51)+.4*Math.sin(t*87))*2.5*strength;
+  frames.push({transform:'translate('+x+'px,'+y+'px) scale('+(1+.045*strength)+')'});
+ }
+ sanctumSequence=renderer.domElement.animate(frames,{duration,easing:'linear'});
+ sanctumSequence.onfinish=()=>{
+  sanctumSequence=null;
+  const message='Someone opened the Secret Sanctum...';
+  notify(message);
+  const notice=document.querySelector('#notice');
+  notice.style.visibility='visible';notice.style.zIndex='100';
+  setTimeout(()=>{notice.style.removeProperty('visibility');notice.style.removeProperty('z-index');},5600);
+ };
+}
 const presence=createPresence(scene,navigation,()=>{
- if(secret.unlock(true)){score.cue('lowering');notify('Someone opened the Secret Sanctum...');}
+ secret.unlock(true);playSanctumOpening();
 });
 navigation.heightTransform=(x,z,y,id)=>[9,102,106].includes(id)?secret.height(x,z,y,id):y;
 const mobileView=matchMedia('(any-pointer:coarse), (max-width:650px)').matches||navigator.maxTouchPoints>0;
@@ -383,7 +406,7 @@ function checkTemple(){
 
  const next=templeAt(player.x,player.z,player.height),event=journey.update(next);
  if(event.exited>=0){const site=templeSites[event.exited];visited=true;pigmentAt=performance.now()/1000;if(score.gains)score.addTemple(event.exited);orbMat.uniforms.pigment.value=0;const colours=[...journey.completed].map(i=>new T.Color(templeSites[i].color));const tint=new T.Color(0,0,0);colours.forEach(c=>tint.add(c));tint.multiplyScalar(1/colours.length);orbMat.uniforms.tint.value.copy(tint);orbMat.uniforms.colourCount.value=colours.length-1;colours.forEach((c,i)=>orbMat.uniforms.palette.value[i].copy(c));notify(site.name+' stays with you. '+site.pigment[0].toUpperCase()+site.pigment.slice(1)+' and a new harmony emerge together.')}
- if(journey.completed.size===4&&secret.unlock()){score.cue('lowering');presence.announceOpening();notify('Someone opened the Secret Sanctum...');}
+ if(journey.completed.size===4&&secret.unlock()){presence.announceOpening();playSanctumOpening();}
  inside=next>=0;const site=templeSites[next];
  if(event.entered>=0&&performance.now()>templeCooldown){notify('Welcome to '+site.name+'. '+site.theme+'.');interiors.enter(next,()=>{templeCooldown=performance.now()+1800;orb.visible=true;checkTemple();},{prepareExit:()=>{restoreHallPosition(site);visualHeight=player.height;velocity.set(0,0);},hideAtStart:!orb.visible,x:player.x,z:player.z,height:player.height,dx:(lastHallPosition.x-site.x)/Math.max(.01,Math.hypot(lastHallPosition.x-site.x,lastHallPosition.z-site.z)),dz:(lastHallPosition.z-site.z)/Math.max(.01,Math.hypot(lastHallPosition.x-site.x,lastHallPosition.z-site.z))});}
  setText(hudElements.zone,site?'TEMPLE OF '+site.name.toUpperCase():'THE CENTRAL CROSSING');
@@ -473,8 +496,6 @@ camera.position.z+=smoothedTilt.y*.08*(1-tiltScale);
 // In overview, translate the aim with the camera to preserve the emblem orientation.
 hoverLook.x+=smoothedTilt.x*.12*(1-tiltScale);hoverLook.z+=smoothedTilt.y*.08*(1-tiltScale);
 if(!templeTransfer)camera.lookAt(hoverLook);
-// Camera-only tremor: scene moves while the HTML interface stays still.
-if(!reduced&&secret.state.phase==='lowering'){const q=secret.state.elapsed/4,envelope=Math.sin(Math.PI*Math.min(1,q))*.075;camera.position.x+=Math.sin(t*47)*envelope;camera.position.y+=Math.sin(t*61)*envelope*.65;camera.rotateZ(Math.sin(t*39)*envelope*.012);}
 const menuActive=quickNav.update(dt,reduced);
 secret.updateLabel(camera);if(secret.exiting||secret.state.justReturned){orbMat.uniforms.glitch.value=reduced?0:secret.glitch;orb.visible=!secret.orbHidden;}
 const speechZoomLimit=mobileView?.65:.8;

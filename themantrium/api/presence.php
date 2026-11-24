@@ -34,16 +34,17 @@ $visit=$input['visit']??'';
 if(!is_string($visit)||!preg_match('/^[a-f0-9-]{36}$/D',$visit)) $visit='';
 $same=$visit!=='' && ($old['visit']??'')===$visit;
 $shared=$same && !empty($old['shared']);
+$opening=$same?($old['opening']??null):null;
 $announced=$same && !empty($old['announced']);
 if($visit!=='' && !$announced && $mask===15 && ($input['opened']??false)===true){
- foreach($state as $key=>&$recipient) if($key!==$id && !empty($recipient['visit'])) $recipient['shared']=true;
+ foreach($state as $key=>&$recipient) if($key!==$id && !empty($recipient['visit'])) { $recipient['shared']=true; $recipient['opening']=$visit; }
  unset($recipient);
  $announced=true;
 }
 $pulse=$old['pulse']??0;
 if(!empty($input['pulse'])&&$now-$pulse>6)$pulse=$now;
-$state[$id]=['id'=>$id,'x'=>$x,'y'=>$y,'z'=>$z,'zone'=>$zone,'pigments'=>$mask,'seen'=>$now,'pulse'=>$pulse,'visit'=>$visit,'shared'=>$shared,'announced'=>$announced];
-$peers=[];foreach($state as $key=>$peer)if($key!==$id&&$peer['zone']===$zone){$d=hypot($peer['x']-$x,$peer['z']-$z);if($d<35){$peer['distance']=$d;unset($peer['seen'],$peer['visit'],$peer['shared'],$peer['announced']);$peers[]=$peer;}}
+$state[$id]=['id'=>$id,'x'=>$x,'y'=>$y,'z'=>$z,'zone'=>$zone,'pigments'=>$mask,'seen'=>$now,'pulse'=>$pulse,'visit'=>$visit,'opening'=>$opening,'shared'=>$shared,'announced'=>$announced];
+$peers=[];foreach($state as $key=>$peer)if($key!==$id&&$peer['zone']===$zone){$d=hypot($peer['x']-$x,$peer['z']-$z);if($d<35){$peer['distance']=$d;unset($peer['seen'],$peer['opening'],$peer['visit'],$peer['shared'],$peer['announced']);$peers[]=$peer;}}
 usort($peers,function($a,$b){return $a['distance']<=>$b['distance'];});
 ftruncate($handle,0);rewind($handle);fwrite($handle,json_encode($state));fflush($handle);flock($handle,LOCK_UN);fclose($handle);
-echo json_encode(['id'=>$id,'peers'=>array_slice($peers,0,8),'time'=>$now,'shared'=>$shared,'announced'=>$announced]);
+echo json_encode(['id'=>$id,'peers'=>array_slice($peers,0,8),'time'=>$now,'opening'=>$opening,'shared'=>$shared,'announced'=>$announced]);
