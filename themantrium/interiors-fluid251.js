@@ -103,7 +103,7 @@ export function createInteriors(renderer,sites,orbMaterial){
   const r=rooms[state.index],count=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.12));
   for(let step=0;step<count;step++){
    const x=state.x+dx/count,z=state.z+dz/count;
-   if(Math.abs(x)>9.2||Math.abs(z)>9.2){if(Math.min(Math.abs(x),Math.abs(z))<1.3)leave({x,z});continue;}
+   if(Math.abs(x)>9.2||Math.abs(z)>9.2){if(Math.min(Math.abs(x),Math.abs(z))<1.3){leave({x,z});return;}continue;}
    const distance=r.exhibits.map(e=>Math.hypot(x-e.x,z-e.z));
    if(distance.every(d=>d>3.1))pedestalArmed=true;
    const closest=distance.indexOf(Math.min(...distance));
@@ -111,6 +111,7 @@ export function createInteriors(renderer,sites,orbMaterial){
    if(distance.some(d=>d<1.95))continue;
    state.x=x;state.z=z;
   }
+  return true;
  }
  function update(dt,reduced){lastDt=dt;if(state.index<0)return;motionReduced=reduced;state.elapsed+=dt;if(state.target===0&&exitGlitch<.45){exitGlitch+=dt;orbMaterial.uniforms.glitch.value=reduced?0:Math.min(1,exitGlitch/.45);return;}if(state.target===1&&state.elapsed<.45){orbMaterial.uniforms.glitch.value=reduced?0:state.elapsed/.45;return;}orbMaterial.uniforms.glitch.value=0;const step=dt/(reduced?.3:4.2);state.blend=T.MathUtils.clamp(state.blend+(state.target?step:-step),0,1);if(!state.target&&state.blend===0){state.index=-1;document.body.classList.remove('interior-active');settle=0;exitReveal=.65;onExit();return;}const r=rooms[state.index];r.atmosphere.update(performance.now()/1000,reduced);r.mist.update(performance.now()/1000,reduced,undefined,false,mistPosition.set(state.x,1.45,state.z));
  if(state.target===1&&state.blend===1&&!deferOrb){
