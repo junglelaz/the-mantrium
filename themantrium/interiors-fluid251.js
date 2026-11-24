@@ -92,7 +92,7 @@ export function createInteriors(renderer,sites,orbMaterial){
  document.addEventListener('click',event=>{const i=pickPedestal(event);if(i<0)return;const e=rooms[state.index].exhibits[i];selection={i,x:e.x,z:e.z+2.1};mousePedestal=-1;renderer.domElement.style.cursor='';});
  function enter(index,exit,arrival){if(state.index>=0)return;
   rooms[index] ??= buildRoom(index);
-  pages.reset();selection=null;readingFollow=0;roomReturn=null;roomPosition={x:0,z:8};pedestalArmed=true;entry=arrival;startCamera=null;anchor=null;settle=0;roomSettle=1;deferOrb=true;reveal=0;exitReveal=0;if(state.index>=0)return;state.index=index;state.target=1;state.x=0;state.z=8;state.elapsed=0;onExit=exit;}
+  pages.reset();selection=null;readingFollow=0;roomReturn=null;roomPosition={x:0,z:8};pedestalArmed=true;entry=arrival;startCamera=null;anchor=null;settle=0;roomSettle=1;deferOrb=true;reveal=0;exitReveal=0;if(state.index>=0)return;state.index=index;document.body.classList.add('interior-active');state.target=1;state.x=0;state.z=8;state.elapsed=0;onExit=exit;}
  function leave(walkedThrough=null){if(state.index<0||!state.target)return;pages.fadeExit();pages.hide();selection=null;const r=rooms[state.index];r.camera.updateMatrixWorld();exitCamera=r.camera.clone();
  const edge=walkedThrough?Math.max(Math.abs(walkedThrough.x),Math.abs(walkedThrough.z)):0;
  exitNormal.set(1,0,0);
@@ -112,7 +112,7 @@ export function createInteriors(renderer,sites,orbMaterial){
    state.x=x;state.z=z;
   }
  }
- function update(dt,reduced){lastDt=dt;if(state.index<0)return;motionReduced=reduced;document.body.classList.add('interior-active');state.elapsed+=dt;if(state.target===0&&exitGlitch<.45){exitGlitch+=dt;orbMaterial.uniforms.glitch.value=reduced?0:Math.min(1,exitGlitch/.45);return;}if(state.target===1&&state.elapsed<.45){orbMaterial.uniforms.glitch.value=reduced?0:state.elapsed/.45;return;}orbMaterial.uniforms.glitch.value=0;const step=dt/(reduced?.3:4.2);state.blend=T.MathUtils.clamp(state.blend+(state.target?step:-step),0,1);if(!state.target&&state.blend===0){state.index=-1;document.body.classList.remove('interior-active');settle=0;exitReveal=.65;onExit();return;}const r=rooms[state.index];r.atmosphere.update(performance.now()/1000,reduced);r.mist.update(performance.now()/1000,reduced,undefined,false,mistPosition.set(state.x,1.45,state.z));
+ function update(dt,reduced){lastDt=dt;if(state.index<0)return;motionReduced=reduced;state.elapsed+=dt;if(state.target===0&&exitGlitch<.45){exitGlitch+=dt;orbMaterial.uniforms.glitch.value=reduced?0:Math.min(1,exitGlitch/.45);return;}if(state.target===1&&state.elapsed<.45){orbMaterial.uniforms.glitch.value=reduced?0:state.elapsed/.45;return;}orbMaterial.uniforms.glitch.value=0;const step=dt/(reduced?.3:4.2);state.blend=T.MathUtils.clamp(state.blend+(state.target?step:-step),0,1);if(!state.target&&state.blend===0){state.index=-1;document.body.classList.remove('interior-active');settle=0;exitReveal=.65;onExit();return;}const r=rooms[state.index];r.atmosphere.update(performance.now()/1000,reduced);r.mist.update(performance.now()/1000,reduced,undefined,false,mistPosition.set(state.x,1.45,state.z));
  if(state.target===1&&state.blend===1&&!deferOrb){
   if(roomReturn){state.x=T.MathUtils.damp(state.x,roomReturn.x,3,dt);state.z=T.MathUtils.damp(state.z,roomReturn.z,3,dt);if(Math.hypot(state.x-roomReturn.x,state.z-roomReturn.z)<.02){state.x=roomReturn.x;state.z=roomReturn.z;roomReturn=null;}}
   else if(selection){state.x=T.MathUtils.damp(state.x,selection.x,3,dt);state.z=T.MathUtils.damp(state.z,selection.z,3,dt);if(Math.hypot(state.x-selection.x,state.z-selection.z)<.12){pages.openPage(selection.i);selection=null;}}
@@ -141,14 +141,17 @@ export function createInteriors(renderer,sites,orbMaterial){
    r.camera.position.lerp(matched.position,rise);r.camera.quaternion.slerp(matched.quaternion,rise);
    r.camera.updateMatrixWorld();
    const cross=T.MathUtils.smoothstep(menuBlend,.46,.64);
+   const panel=document.querySelector('#temple-pages');
+   panel.style.opacity=String(1-T.MathUtils.smoothstep(menuBlend,0,.18));
+   panel.style.pointerEvents='none';
+   if(cross===0){renderCloudScene(renderer,r.scene,r.camera);return}
+   if(cross===1){renderCloudScene(renderer,hall,hallCamera);return}
    const size=renderer.getDrawingBufferSize(new T.Vector2());
    if(a.image.width!==size.x||a.image.height!==size.y){a.dispose();b.dispose();a=new T.FramebufferTexture(size.x,size.y);b=new T.FramebufferTexture(size.x,size.y);material.uniforms.hall.value=a;material.uniforms.room.value=b;}
    renderer.setRenderTarget(null);renderCloudScene(renderer,hall,hallCamera);renderer.copyFramebufferToTexture(a);
    renderCloudScene(renderer,r.scene,r.camera);renderer.copyFramebufferToTexture(b);
    material.uniforms.entrance.value=0;material.uniforms.mixAmount.value=1-cross;
    renderer.render(screen,camera);
-   document.querySelector('#temple-pages').style.opacity=String(1-T.MathUtils.smoothstep(menuBlend,0,.18));
-   document.querySelector('#temple-pages').style.pointerEvents='none';
    return;
   }
   if(menuCamera){menuCamera=null;menuRoom=-1;const panel=document.querySelector('#temple-pages');panel.style.removeProperty('opacity');panel.style.removeProperty('pointer-events');}
@@ -198,7 +201,7 @@ export function createInteriors(renderer,sites,orbMaterial){
    }
    r.camera.translateZ(shift*T.MathUtils.smoothstep(progress,.35,1));
    if(portrait){
-    // Move the overview down by up to 42 CSS pixels before blending into reading mode.
+    // Move the overview down by up to 30 CSS pixels before blending into reading mode.
     r.camera.updateMatrixWorld();
     viewCorner.set(0,0,0).applyMatrix4(r.camera.matrixWorldInverse);
     const offset=Math.min(30,innerHeight*.043)*2/innerHeight;
@@ -254,9 +257,8 @@ export function createInteriors(renderer,sites,orbMaterial){
   r.companionLight.position.copy(r.orb.position).add(new T.Vector3(0,1.5,0));
   pages.setInputReady(readingFollow>=.95);r.orb.material.uniforms.readingFlow.value=readingFollow;r.orb.material.uniforms.scrollPhase.value=T.MathUtils.damp(r.orb.material.uniforms.scrollPhase.value,pages.progress,3,lastDt);
   if(progress>=1)roomSettle=Math.max(0,roomSettle-lastDt*1.25);
-  const positions=r.exhibits.map(e=>{const p=new T.Vector3(e.x,1,e.z+2).project(r.camera);return {x:(p.x*.5+.5)*innerWidth,y:(-p.y*.5+.5)*innerHeight};});
   const exitPoint=new T.Vector3(10,.15,0).project(r.camera);
-  pages.update(state.index,progress===1&&state.target===1&&roomSettle<=.15&&!document.body.classList.contains('quick-nav-open'),positions,{x:(exitPoint.x*.5+.5)*innerWidth,y:(-.5*exitPoint.y+.5)*innerHeight,z:exitPoint.z});
+  pages.update(state.index,progress===1&&state.target===1&&roomSettle<=.15&&!document.body.classList.contains('quick-nav-open'),{x:(exitPoint.x*.5+.5)*innerWidth,y:(-.5*exitPoint.y+.5)*innerHeight,z:exitPoint.z});
   screenshotOrb.update(r.camera,r.orb,pages.mode==='reading'&&progress>=1&&!document.body.classList.contains('quick-nav-open'));
   if(progress>=1){renderCloudScene(renderer,r.scene,r.camera);return}
   if(progress<=.02&&!motionReduced&&state.target===1){renderCloudScene(renderer,hall,hallCamera);return}
@@ -264,8 +266,12 @@ export function createInteriors(renderer,sites,orbMaterial){
   if(a.image.width!==size.x||a.image.height!==size.y){a.dispose();b.dispose();a=new T.FramebufferTexture(size.x,size.y);b=new T.FramebufferTexture(size.x,size.y);material.uniforms.hall.value=a;material.uniforms.room.value=b;}
   // Capture the same display-ready rendering used once the transition completes.
   // This keeps tone mapping, transparent glows and lighting identical on both sides.
-  renderer.setRenderTarget(null);renderCloudScene(renderer,hall,hallCamera);renderer.copyFramebufferToTexture(a);
-  renderCloudScene(renderer,r.scene,r.camera);renderer.copyFramebufferToTexture(b);
+  renderer.setRenderTarget(null);
+  const entering=state.target===1,phase=entering?progress:1-progress;
+  // The destination's shader weight is exactly zero until phase .68.
+  const needsDestination=motionReduced || phase>.68;
+  if(entering || needsDestination){renderCloudScene(renderer,hall,hallCamera);renderer.copyFramebufferToTexture(a);}
+  if(!entering || needsDestination){renderCloudScene(renderer,r.scene,r.camera);renderer.copyFramebufferToTexture(b);}
   material.uniforms.mixAmount.value=motionReduced?progress:T.MathUtils.smoothstep(progress,.28,.82);
   material.uniforms.reduced.value=motionReduced?1:0;material.uniforms.aspect.value=aspect;
   material.uniforms.entrance.value=motionReduced?0:1;

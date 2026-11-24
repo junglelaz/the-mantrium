@@ -109,6 +109,7 @@ export function createNature(scene,polygons,temples=[],navigation=null){
  shader.vertexShader=shader.vertexShader.replace('#include <beginnormal_vertex>','#include <beginnormal_vertex>\nobjectNormal=rotateVine(objectNormal,vineBend);');
  };stemMat.customProgramCacheKey=()=> 'hanging-vine-pendulum-v2';
  function updateVines(dt,orb,reduced){
+  const dirtyBends=new Set();
   for(const v of vineStates.values()){
    const dx=v.anchor.x-orb.x,dz=v.anchor.z-orb.z,dy=(v.anchor.y-orb.y)*.35,d=Math.hypot(dx,dy,dz),reach=1-T.MathUtils.smoothstep(d,.8,5),horizontal=Math.max(.01,Math.hypot(dx,dz));
    const desired=reduced?0:reach*gustStrength.value*(v.followsOrb?.30:.035)*v.strength;v.force=T.MathUtils.damp(v.force,desired,v.response,dt);const force=v.force;
@@ -122,11 +123,14 @@ export function createNature(scene,polygons,temples=[],navigation=null){
    // Damped spring retains a small, slow after-sway when the orb leaves.
    v.velocity.x+=((tx-v.angle.x)*v.stiffness*(v.followsOrb?2.5:1)-v.velocity.x*v.damping*(v.followsOrb?1.5:1))*dt;
    v.velocity.y+=((tz-v.angle.y)*v.stiffness*(v.followsOrb?2.5:1)-v.velocity.y*v.damping*(v.followsOrb?1.5:1))*dt;
+   const oldX=Math.fround(v.angle.x),oldY=Math.fround(v.angle.y);
    v.angle.addScaledVector(v.velocity,dt);
+   if(Math.fround(v.angle.x)===oldX && Math.fround(v.angle.y)===oldY)continue;
+   if(v.stems.length)dirtyBends.add(stemBends);
    for(const i of v.stems)stemBends.setXY(i,v.angle.x,v.angle.y);
-   for(const [attr,i] of v.leaves)attr.setXY(i,v.angle.x,v.angle.y);
+   for(const [attr,i] of v.leaves){attr.setXY(i,v.angle.x,v.angle.y);dirtyBends.add(attr);}
   }
-  stemBends.needsUpdate=true;for(const mesh of leafMeshes)mesh.geometry.attributes.vineBend.needsUpdate=true;
+  for(const attribute of dirtyBends)attribute.needsUpdate=true;
  }
  const animateLeaves=(mat,amplitude=.06)=>{mat.onBeforeCompile=s=>{
   s.uniforms.natureTime=wind;s.uniforms.gustOrb=gustOrb;s.uniforms.gustStrength=gustStrength;s.uniforms.gustDirection=gustDirection;
@@ -156,10 +160,6 @@ export function createNature(scene,polygons,temples=[],navigation=null){
   `);
  if(mat===leafMat)s.fragmentShader=s.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\nif(max(diffuseColor.r,max(diffuseColor.g,diffuseColor.b))<.035)discard;');
  };mat.customProgramCacheKey=()=> 'passing-breeze-v5-'+amplitude;};animateLeaves(leafMat);
- new GLTFLoader().load('public/nature/fern/fern.gltf',gltf=>{
-  const variants=[];gltf.scene.traverse(o=>{if(o.isMesh)variants.push(o)});
-  variants.forEach((source,k)=>{const selected=fernPoints.filter((_,i)=>i%variants.length===k);const refined=leafMat.clone();animateLeaves(refined,.035);const inst=new T.InstancedMesh(leafGeos[k%leafGeos.length],refined,selected.length*7);selected.forEach((p,i)=>{dummy.position.set(p.x,p.y,p.z);dummy.rotation.set(.45,p.angle,0);const scale=.35+random()*.3;for(let sprig=0;sprig<7;sprig++){dummy.rotation.set(.45+(sprig%3)*.2,p.angle+(sprig-3)*.32,(sprig-3)*.14);dummy.scale.setScalar(scale*(.8+(sprig%3)*.13));dummy.updateMatrix();inst.setMatrixAt(i*7+sprig,dummy.matrix)}});inst.receiveShadow=true;group.add(inst)});
- },undefined,()=>console.warn('Fern unavailable; moss and vines remain available.'));
  // Tapered, bark-textured buttress roots cling to the exposed wall face.
  const bark=loader.load('public/nature/bark-color.webp'),barkNormal=loader.load('public/nature/bark-normal.webp');bark.colorSpace=T.SRGBColorSpace;
  const barkMat=new T.MeshStandardMaterial({map:bark,normalMap:barkNormal,normalScale:new T.Vector2(.7,.7),roughness:.95});
@@ -183,6 +183,28 @@ export function createNature(scene,polygons,temples=[],navigation=null){
  waterSites.push(...wallWaterSites(polygons,navigation));
  const cascades=createWallWater(group,waterSites);
  const stoneWear=createStoneWear(group,polygons,navigation);
+ // Four fern arrangements use the procedural leaf geometry and material above.
+ // Build after seeded root placement to preserve the authored plant sizes.
+ for(let variant=0;variant<4;variant++){
+  const count=Math.ceil(Math.max(0,fernPoints.length-variant)/4);
+  if(!count)continue;
+  const material=leafMat.clone();
+  animateLeaves(material,.035);
+  const fern=new T.InstancedMesh(leafGeos[variant],material,count*7);
+  let slot=0;
+  for(let i=variant;i<fernPoints.length;i+=4){
+   const p=fernPoints[i],scale=.35+random()*.3;
+   dummy.position.set(p.x,p.y,p.z);
+   for(let sprig=0;sprig<7;sprig++){
+    dummy.rotation.set(.45+(sprig%3)*.2,p.angle+(sprig-3)*.32,(sprig-3)*.14);
+    dummy.scale.setScalar(scale*(.8+(sprig%3)*.13));
+    dummy.updateMatrix();
+    fern.setMatrixAt(slot++,dummy.matrix);
+   }
+  }
+  fern.receiveShadow=true;
+  group.add(fern);
+ }
  return {group,update:(time,reduced,orb)=>{cascades.update(time,reduced);stoneWear.update();wind.value=reduced?0:time;const dt=Math.min(.1,Math.max(.001,time-lastTime));lastTime=time;if(orb){if(!hasOrb){lastOrb.copy(orb);gustOrb.value.copy(orb);hasOrb=true;}gustDelta.copy(orb).sub(lastOrb);const moved=gustDelta.length(),speed=moved/dt;
  if(moved>2){gustStrength.value=0;gustOrb.value.copy(orb);}else{
   const moving=speed>.15&&!reduced;
