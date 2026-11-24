@@ -50,7 +50,7 @@ export function createInhabitants(scene,navigation,camera){
  function positionBubble(element,world,radius){const projected=world.clone().project(camera),depth=-world.clone().applyMatrix4(camera.matrixWorldInverse).z;const screenRadius=radius*innerHeight/(2*Math.max(.1,depth)*Math.tan(T.MathUtils.degToRad(camera.fov/2)));bubbleAnchors.set(element,{x:(projected.x*.5+.5)*innerWidth,y:(-projected.y*.5+.5)*innerHeight-screenRadius-12});}
  // Keep each bubble at a constant size; move crowded bubbles into nearby free lanes.
  function arrangeBubbles(){
-  const visibleBottom=Math.min(innerHeight,(window.visualViewport?.height??innerHeight)+(window.visualViewport?.offsetTop??0));
+  const visibleBottom=Math.min(Number(document.documentElement.dataset.controlCeiling??innerHeight),innerHeight,(window.visualViewport?.height??innerHeight)+(window.visualViewport?.offsetTop??0));
   const exitLabel=document.querySelector('.sanctum-exit-label');const exitBounds=exitLabel&&!exitLabel.hidden?exitLabel.getBoundingClientRect():null;const obstacle=exitBounds?{x:exitBounds.left,y:exitBounds.top-8,w:exitBounds.width,h:exitBounds.height+16}:null;
   const placed=obstacle?[obstacle]:[];for(const line of connectors.values())line.hidden=true;
   for(const [element,a] of [...bubbleAnchors].sort(([a],[b])=>Number(b.dataset.anchored==='guru')-Number(a.dataset.anchored==='guru'))){
@@ -76,7 +76,7 @@ export function createInhabitants(scene,navigation,camera){
    const pointerX=Math.max(16,Math.min(w-16,a.x-best.x)),above=a.y<best.y;element.style.setProperty('--pointer-x',pointerX+'px');element.dataset.pointerSide=above?'top':'bottom';
    const shapeKey=[w,h,Math.round(pointerX),above].join(':');if(element.dataset.glassShape!==shapeKey){element.dataset.glassShape=shapeKey;const x=Math.round(pointerX),r=12,t=8,b=h+8;const top=above?`L ${x-8} ${t} L ${x} 0 L ${x+8} ${t}`:'',bottom=above?'':`L ${x+8} ${b} L ${x} ${b+8} L ${x-8} ${b}`;element.style.setProperty('--speech-outline',`path("M ${r} ${t} ${top} L ${w-r} ${t} Q ${w} ${t} ${w} ${t+r} L ${w} ${b-r} Q ${w} ${b} ${w-r} ${b} ${bottom} L ${r} ${b} Q 0 ${b} 0 ${b-r} L 0 ${t+r} Q 0 ${t} ${r} ${t} Z")`);}
 
-   if(displaced){let line=connectors.get(element);if(!line){line=document.createElement('div');line.className='speech-connector';element.append(line);connectors.set(element,line);}const x=best.x+pointerX,y=above?best.y-8:best.y+h+8;line.hidden=false;line.style.left=pointerX+'px';line.style.top=(above?-8:h+8)+'px';line.style.width=Math.hypot(a.x-x,a.y+6-y)+'px';line.style.transform='rotate('+Math.atan2(a.y+6-y,a.x-x)+'rad)';}
+   if(displaced && a.y+8<visibleBottom){let line=connectors.get(element);if(!line){line=document.createElement('div');line.className='speech-connector';element.append(line);connectors.set(element,line);}const x=best.x+pointerX,y=above?best.y-8:best.y+h+8;line.hidden=false;line.style.left=pointerX+'px';line.style.top=(above?-8:h+8)+'px';line.style.width=Math.hypot(a.x-x,a.y+6-y)+'px';line.style.transform='rotate('+Math.atan2(a.y+6-y,a.x-x)+'rad)';}
 
   }
  }
