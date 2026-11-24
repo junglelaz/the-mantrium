@@ -201,7 +201,7 @@ export function createInteriors(renderer,sites,orbMaterial){
     // Move the overview down by up to 42 CSS pixels before blending into reading mode.
     r.camera.updateMatrixWorld();
     viewCorner.set(0,0,0).applyMatrix4(r.camera.matrixWorldInverse);
-    const offset=Math.min(42,innerHeight*.06)*2/innerHeight;
+    const offset=Math.min(30,innerHeight*.043)*2/innerHeight;
     r.camera.translateY(-viewCorner.z*tangent*offset*T.MathUtils.smoothstep(progress,.35,1));
    }
    r.camera.updateMatrixWorld();
