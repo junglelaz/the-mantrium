@@ -417,16 +417,53 @@ function checkTemple(){
  hudElements.travel.hidden=inside;hudElements.return.hidden=!inside;experienceButton.hidden=!inside;
 }
 const keys=new Set(),velocity=new T.Vector2(),stick=new T.Vector2();addEventListener('keydown',e=>{if((e.target.closest('input,textarea,[contenteditable]')&&!(e.target.closest('.player-speech')&&e.key.startsWith('Arrow')))||panel.open||(document.body.classList.contains('temple-ui')&&!document.body.classList.contains('temple-gallery')))return;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();keys.add(e.key.toLowerCase());if(e.key.toLowerCase()==='m')showPage('map')});addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));addEventListener('blur',()=>{keys.clear();stick.set(0,0)});panel.addEventListener('close',()=>keys.clear());const joy=$('#joystick');
-let stickPointer=null,stickBounds=null,stickTapStart=null,lastStickTap=0;
+let stickPointer=null,stickBounds=null;
 const touchPoints=new Map();let pinchDistance=null;
-function updateTouchUI(fade=false){const touch=matchMedia('(any-pointer:coarse), (max-width:650px)').matches||navigator.maxTouchPoints>0;joy.hidden=!entered||!touch;const instructions=$('#instructions'),text=touch?'DRAG · MOVE / PINCH · ZOOM / TAP HERE · SPEAK / DOUBLE-TAP CONTROL · PULSE':'WASD / ↑︎←︎↓︎→︎ = MOVE · SCROLL = ZOOM IN / OUT · / = SPEAK · P = SEND PULSE · M = MAP';if(fade&&!reduced){instructions.classList.add('copy-fading');setTimeout(()=>{instructions.textContent=text;instructions.classList.remove('copy-fading')},400)}else instructions.textContent=text;}
+function updateTouchUI(fade=false){const touch=matchMedia('(any-pointer:coarse), (max-width:650px)').matches||navigator.maxTouchPoints>0;joy.hidden=!entered||!touch;const instructions=$('#instructions'),text=touch?'☉ = Move · Pinch = Zoom · Tap Bubble = Speak · Double Tap = Pulse':'WASD / ↑︎←︎↓︎→︎ = MOVE · SCROLL = ZOOM IN / OUT · / = SPEAK · P = SEND PULSE · M = MAP';if(fade&&!reduced){instructions.classList.add('copy-fading');setTimeout(()=>{instructions.textContent=text;instructions.classList.remove('copy-fading')},400)}else instructions.textContent=text;}
 function resetStick(){stickPointer=null;stickBounds=null;stick.set(0,0);velocity.set(0,0);joy.firstElementChild.style.transform='none'}
 addEventListener('mantrium:reading-open',()=>{resetTouch();velocity.set(0,0)});
 function resetTouch(){resetStick();touchPoints.clear();pinchDistance=null;keys.clear()}
-joy.addEventListener('pointerdown',e=>{if(!entered||panel.open||stickPointer!==null)return;e.preventDefault();stickPointer=e.pointerId;stickBounds=joy.getBoundingClientRect();stickTapStart={x:e.clientX,y:e.clientY,time:performance.now()};joy.setPointerCapture(e.pointerId);moveStick(e)});
+joy.addEventListener('pointerdown',e=>{if(!entered||panel.open||stickPointer!==null)return;e.preventDefault();stickPointer=e.pointerId;stickBounds=joy.getBoundingClientRect();joy.setPointerCapture(e.pointerId);moveStick(e)});
 joy.addEventListener('pointermove',e=>{if(e.pointerId===stickPointer)moveStick(e)});
 function moveStick(e){const r=stickBounds,radius=r.width*.38;stick.set((e.clientX-r.left-r.width/2)/radius,(e.clientY-r.top-r.height/2)/radius).clampLength(0,1);joy.firstElementChild.style.transform=`translate(${stick.x*r.width*.27}px,${stick.y*r.height*.27}px)`}
-for(const type of ['pointerup','pointercancel','lostpointercapture'])joy.addEventListener(type,e=>{if(e.pointerId===stickPointer){if(type==='pointerup'&&stickTapStart&&Math.hypot(e.clientX-stickTapStart.x,e.clientY-stickTapStart.y)<10&&performance.now()-stickTapStart.time<250){const now=performance.now();if(now-lastStickTap<350){presence.sendPulse();lastStickTap=0;}else lastStickTap=now;}stickTapStart=null;resetStick();}});
+for(const type of ['pointerup','pointercancel','lostpointercapture'])joy.addEventListener(type,e=>{if(e.pointerId===stickPointer)resetStick()});
+
+// Observe taps without consuming joystick, camera or scrolling gestures.
+const pulseExcluded = '.speech-bubble, nav, #quick-nav, header, a, button, input, textarea, select, [contenteditable="true"], [role="button"], [role="navigation"], [role="menuitem"]';
+let pulseTouch = null;
+let previousTap = null;
+const tapOptions = {capture:true, passive:true};
+function cancelPulseTap(){pulseTouch=null;previousTap=null;}
+document.addEventListener('touchstart',event=>{
+  if(!entered || event.touches.length!==1 || event.target.closest(pulseExcluded)){
+    cancelPulseTap();
+    return;
+  }
+  const t=event.changedTouches[0];
+  pulseTouch={id:t.identifier,x:t.clientX,y:t.clientY,time:performance.now()};
+},tapOptions);
+document.addEventListener('touchmove',event=>{
+  if(!pulseTouch)return;
+  const t=event.touches[0];
+  if(!t || Math.hypot(t.clientX-pulseTouch.x,t.clientY-pulseTouch.y)>10)cancelPulseTap();
+},tapOptions);
+document.addEventListener('touchcancel',cancelPulseTap,tapOptions);
+document.addEventListener('touchend',event=>{
+  const start=pulseTouch;
+  pulseTouch=null;
+  if(!start)return;
+  const t=event.changedTouches[0], now=performance.now();
+  if(event.touches.length || t.identifier!==start.id || now-start.time>250 ||
+     Math.hypot(t.clientX-start.x,t.clientY-start.y)>10 ||
+     document.elementFromPoint(t.clientX,t.clientY)?.closest(pulseExcluded)){
+    cancelPulseTap();
+    return;
+  }
+  if(previousTap && now-previousTap.time<=350 && Math.hypot(t.clientX-previousTap.x,t.clientY-previousTap.y)<=32){
+    previousTap=null;
+    presence.sendPulse();
+  }else previousTap={x:t.clientX,y:t.clientY,time:now};
+},tapOptions);
 const canvas=renderer.domElement;
 function pinch(){if(interiors.state.index>=0)return;if(touchPoints.size!==2){pinchDistance=null;return}const [a,b]=[...touchPoints.values()],distance=Math.hypot(a.x-b.x,a.y-b.y);if(quickNav.open){if(pinchDistance>0&&distance>pinchDistance*1.015){quickNav.toggle(false);zoomTarget=innerWidth<=650?.72:1;}pinchDistance=distance;return;}if(pinchDistance>0&&distance>0)zoomTarget=T.MathUtils.clamp(zoomTarget+Math.log(distance/pinchDistance)*1.5,0,1);pinchDistance=distance}
 canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'||!entered||panel.open)return;e.preventDefault();canvas.setPointerCapture(e.pointerId);touchPoints.set(e.pointerId,{x:e.clientX,y:e.clientY});pinch()});
