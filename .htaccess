@@ -1,0 +1,13 @@
+# Canonical hall entrance. Keep the existing paths for assets and API sessions.
+RewriteEngine On
+RewriteCond %{THE_REQUEST} "\s/+(?:themantrium(?:/index\.html|/)?|index\.html)(?:[?\s])" [NC]
+RewriteRule ^(?:themantrium(?:/index\.html|/)?|index\.html)$ https://www.mantrium.io/ [R=301,L,NC]
+
+RewriteCond %{HTTP_HOST} ^mantrium\.io(?::[0-9]+)?$ [NC]
+RewriteRule ^$ https://www.mantrium.io/ [R=301,L]
+
+<IfModule mod_headers.c>
+    SetEnvIf Request_URI "^/(index[.]html)?$" mantrium_home
+    Header set Cache-Control "public, max-age=0" env=mantrium_home
+    Header set Cloudflare-CDN-Cache-Control "public, max-age=300, stale-if-error=86400" env=mantrium_home
+</IfModule>
