@@ -197,6 +197,13 @@ export function createInteriors(renderer,sites,orbMaterial){
      viewCorner.z+Math.abs(viewCorner.y)/(1.035*tangent));
    }
    r.camera.translateZ(shift*T.MathUtils.smoothstep(progress,.35,1));
+   if(portrait){
+    // Move the overview down by up to 24 CSS pixels before blending into reading mode.
+    r.camera.updateMatrixWorld();
+    viewCorner.set(0,0,0).applyMatrix4(r.camera.matrixWorldInverse);
+    const offset=Math.min(24,innerHeight*.035)*2/innerHeight;
+    r.camera.translateY(-viewCorner.z*tangent*offset*T.MathUtils.smoothstep(progress,.35,1));
+   }
    r.camera.updateMatrixWorld();
   }
   placeScreenPoint(r.camera,r.orb,anchor,progress<1?1:roomSettle);
