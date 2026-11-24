@@ -80,6 +80,7 @@ export function createClouds(scene,{interior=false}={}){
 // Fade mist into opaque surfaces using their depth, rather than exposing a
 // hard plane intersection. Shared by the hall and all temple cameras.
 const mistDepthTargets=new WeakMap();
+const depthBufferSize=new T.Vector2();
 const mistDepthMaterials=new Map();
 function mistDepthMaterial(material){
  if(!material.isMeshStandardMaterial||material.alphaTest>0||material.alphaHash||
@@ -95,13 +96,13 @@ function mistDepthMaterial(material){
 }
 export function renderCloudScene(renderer,scene,camera){
  if(scene.userData.useNativeMistDepth){renderer.render(scene,camera);return;}
- const clouds=[],hidden=[],replaced=[];scene.traverseVisible(o=>{if(o.userData.softClouds)clouds.push(o);});
+ const clouds=[],hidden=[],replaced=[],drawables=[];scene.traverseVisible(o=>{if(o.userData.softClouds)clouds.push(o);if(o.material||o.userData.softClouds)drawables.push(o);});
  if(!clouds.length){renderer.render(scene,camera);return;}
  let target=mistDepthTargets.get(renderer);
  if(!target){target=new T.WebGLRenderTarget(1,1,{depthBuffer:true,stencilBuffer:false});target.depthTexture=new T.DepthTexture(1,1,T.UnsignedIntType);mistDepthTargets.set(renderer,target);}
- const size=renderer.getDrawingBufferSize(new T.Vector2()),w=Math.ceil(size.x/2),h=Math.ceil(size.y/2);if(target.width!==w||target.height!==h)target.setSize(w,h);
+ const size=renderer.getDrawingBufferSize(depthBufferSize),w=Math.ceil(size.x/2),h=Math.ceil(size.y/2);if(target.width!==w||target.height!==h)target.setSize(w,h);
  // Transparent atmosphere and orbs must not masquerade as solid wall depth.
- scene.traverseVisible(o=>{
+ drawables.forEach(o=>{
   const material=o.material;
   if(o.userData.softClouds||(material&&(Array.isArray(material)?material.some(m=>m.transparent):material.transparent))){
    hidden.push(o);

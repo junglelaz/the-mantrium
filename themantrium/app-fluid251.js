@@ -438,6 +438,12 @@ function adjustRenderResolution(now,frameTime){
  framesInBudget=0;
  slowFramesInBudget=0;
 }
+function updateCanvasPresentation(canvas, opacity, zoom) {
+ const opacityText = String(opacity);
+ const zoomText = zoom.toFixed(3);
+ if (canvas.style.opacity !== opacityText) canvas.style.opacity = opacityText;
+ if (canvas.dataset.viewZoom !== zoomText) canvas.dataset.viewZoom = zoomText;
+}
 const target=new T.Vector3(),look=new T.Vector3();function animate(now){requestAnimationFrame(animate);adjustRenderResolution(now,now-last);
  if(!document.hidden&&now-lastShadowUpdate>=(mobileRender?350:125)&&interiors.state.index<0){
   sun.shadow.needsUpdate=true;
@@ -474,7 +480,7 @@ const speechCameraSettled=(reduced||now-descent>=4500)&&!quickNav.active&&!quick
 const muteSpeech=secret.exiting||!entered||!speechCameraSettled||zoomBlend<speechZoomLimit||zoomTarget<speechZoomLimit;
 if(document.body.classList.contains('speech-muted')!==muteSpeech)document.body.classList.toggle('speech-muted',muteSpeech);
 fireflies.update(dt,t,orb.position,interiors.state.index<0&&!secret.fade&&secret.state.phase!=='chamber',reduced,innerHeight*renderer.getPixelRatio());
-{const body=navigation.orbs.find(o=>o.owner==='player');if(body){body.x=player.x;body.z=player.z;body.y=player.height+FLOAT_HEIGHT;}}presence.update(dt,player,[...journey.completed].reduce((mask,i)=>mask|(1<<i),0),entered&&!templeTransfer&&interiors.state.index<0&&!['falling','chamber'].includes(secret.state.phase));inhabitants.update(dt,t,player,journey.completed.size,!templeTransfer&&interiors.state.index<0&&secret.state.phase!=='falling',reduced,orb.position,secret.state.phase==='chamber',!muteSpeech);renderer.domElement.style.opacity=String(1-secret.fade);renderer.domElement.dataset.viewZoom=zoomBlend.toFixed(3);scene.fog.color.set(secret.state.phase==='chamber'?'#a4b9bd':'#284449');scene.fog.density=secret.state.phase==='chamber'?.018:.009*Math.min(1,105/Math.max(20,camera.position.y));scene.fog.density=T.MathUtils.lerp(scene.fog.density,.0008,quickNav.blend);updateOrbShadow(orb.visible&&interiors.state.index<0&&secret.state.phase!=='falling'&&secret.state.phase!=='chamber');bloom.render(()=>menuActive&&interiors.state.index<0?renderCloudScene(renderer,scene,camera):interiors.render(scene,camera,zoomBlend,orb,quickNav.blend))}
+{const body=navigation.orbs.find(o=>o.owner==='player');if(body){body.x=player.x;body.z=player.z;body.y=player.height+FLOAT_HEIGHT;}}presence.update(dt,player,[...journey.completed].reduce((mask,i)=>mask|(1<<i),0),entered&&!templeTransfer&&interiors.state.index<0&&!['falling','chamber'].includes(secret.state.phase));inhabitants.update(dt,t,player,journey.completed.size,!templeTransfer&&interiors.state.index<0&&secret.state.phase!=='falling',reduced,orb.position,secret.state.phase==='chamber',!muteSpeech);updateCanvasPresentation(renderer.domElement, 1 - secret.fade, zoomBlend);scene.fog.color.set(secret.state.phase==='chamber'?'#a4b9bd':'#284449');scene.fog.density=secret.state.phase==='chamber'?.018:.009*Math.min(1,105/Math.max(20,camera.position.y));scene.fog.density=T.MathUtils.lerp(scene.fog.density,.0008,quickNav.blend);updateOrbShadow(orb.visible&&interiors.state.index<0&&secret.state.phase!=='falling'&&secret.state.phase!=='chamber');bloom.render(()=>menuActive&&interiors.state.index<0?renderCloudScene(renderer,scene,camera):interiors.render(scene,camera,zoomBlend,orb,quickNav.blend))}
 const updateOrbShadow=createOrbShadow(scene,orb,sun);
 requestAnimationFrame(animate);addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});if(location.hash==='#work'||location.hash==='#studio')showPage(location.hash.slice(1));
 
