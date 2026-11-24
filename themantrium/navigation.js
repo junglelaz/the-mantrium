@@ -57,9 +57,31 @@ export function templeFloorHeight(t,x,z){
 export function createNavigation(polygons,temples){
  const obstacles=[];
  const edgeProbes=Array.from({length:64},(_,i)=>[Math.cos(i*Math.PI/32)*ORB_RADIUS,Math.sin(i*Math.PI/32)*ORB_RADIUS]);
+ // A point only needs exact containment tests for outlines touching its grid cell.
+ const cells=new Map(),cellSize=6;
+ function indexOutline(points,id,crossing){
+  if(!points.length)return;
+  const xs=points.map(p=>p[0]),zs=points.map(p=>p[1]);
+  const entry={points,id,crossing};
+  for(let i=Math.floor(Math.min(...xs)/cellSize);i<=Math.floor(Math.max(...xs)/cellSize);i++){
+   if(!cells.has(i))cells.set(i,new Map());
+   const column=cells.get(i);
+   for(let j=Math.floor(Math.min(...zs)/cellSize);j<=Math.floor(Math.max(...zs)/cellSize);j++){
+    if(!column.has(j))column.set(j,[]);
+    column.get(j).push(entry);
+   }
+  }
+ }
+ polygons.forEach((p,id)=>indexOutline(p,id,null));
+ crossings.forEach(c=>indexOutline(c.outline,100+c.id,c));
+ const empty=[];
  function surfaces(x,z){const hs=[];
-  polygons.forEach((p,id)=>{if(inPolygon(x,z,p))hs.push(api.heightTransform?api.heightTransform(x,z,id<2?.15:ribbonHeight(id-2,x,z),id):id<2?.15:ribbonHeight(id-2,x,z))});
-  for(const c of crossings){const p=coordinates(c,x,z);if(inPolygon(x,z,c.outline))hs.push(api.heightTransform?api.heightTransform(x,z,tunnelHeight(c,x,z),100+c.id):tunnelHeight(c,x,z))}
+  const nearby=cells.get(Math.floor(x/cellSize))?.get(Math.floor(z/cellSize))||empty;
+  for(const {points,id,crossing} of nearby){
+   if(!inPolygon(x,z,points))continue;
+   const h=crossing?tunnelHeight(crossing,x,z):id<2?.15:ribbonHeight(id-2,x,z);
+   hs.push(api.heightTransform?api.heightTransform(x,z,h,id):h);
+  }
   // The only open-air exceptions: bounded approach areas at the two polar temples.
   if((x/11)**2+((z+31)/9)**2<=1||(x/11)**2+((z-31)/9)**2<=1)hs.push(.15);
   for(const t of temples)if(Math.abs(x-t.x)+Math.abs(z-t.z)<=(Math.abs(t.x)>20?6.25:5.05)/Math.SQRT2)hs.push(templeFloorHeight(t,x,z));
