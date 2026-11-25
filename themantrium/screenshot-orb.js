@@ -13,6 +13,7 @@ export function createScreenshotOrb(){
  root.querySelector('.crystal-orb').append(label);
  const style=document.createElement('style');
  style.textContent=`
+ .crystal-viewer .crystal-scroll img.orb-identity{width:100%;height:100%;min-width:0;max-width:100%;box-sizing:border-box;padding:16%;object-fit:contain;object-position:center}
  .orb-comparison-label{display:none}
  @media(min-width:651px) and (hover:hover){
  .orb-comparison-label:not(:empty){display:block;position:absolute;z-index:5;top:12%;left:50%;transform:translateX(-50%);pointer-events:none;color:white;background:radial-gradient(ellipse,rgba(15,20,29,.92) 25%,transparent 74%);padding:.45em 1.45em;font:700 clamp(13px,1.45vw,24px)/1.2 sans-serif;letter-spacing:.17em;text-shadow:0 1px 3px black}
@@ -105,14 +106,16 @@ export function createScreenshotOrb(){
   }
   if(ticket!==request || !active)return;
   const art=link.classList.contains('jungle-art');
-  const wide=art && next.naturalWidth>next.naturalHeight;
+  const identity=Boolean(link.closest('.jungle-identity'));
+  next.classList.toggle('orb-identity',identity);
+  const wide=art && !identity && next.naturalWidth>next.naturalHeight;
   next.classList.toggle('orb-art-wide',wide);
   root.dataset.mode=art?'art':'image';
   scroll.setAttribute('aria-label','Screenshot inside the crystal ball');
   close.setAttribute('aria-label','Close screenshot');
   playback.hidden=true;
   fallback.hidden=true;
-  hint.hidden=wide;
+  hint.hidden=wide || identity;
   hint.textContent=wide?'':'Scroll to see more';
   const comparison=link.href.split('/').pop().match(/^(before|after)[-_.]/i) || next.alt.match(/^(before|after)\b/i);
   label.replaceChildren();
