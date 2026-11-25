@@ -62,7 +62,11 @@ export function jungleLazStudy() {
        ${artwork('press-kit', 'Jungle Laz press-kit mockup showing the cover, biography, discography, social media and endorsements', 1980, 1080, true)}`],
     ['AI-assisted outreach', 'A different pitch for each listener.',
       `<p>A producer considering a <em>Jungle Boy</em> remix needs stems. A music editor needs the track, its story and a press kit. The outreach workflows help identify relevant contacts, prepare a pitch for each recipient and track replies and follow-ups.</p>
-       <p>Jungle Laz estimates that his AI personal assistant handles 70% of his regular work outside music production, giving him more time in the studio.</p>`],
+`],
+    ['AI personal assistant', 'More time in the studio.',
+      `<p>Mantrium developed a personal AI assistant for Jungle Laz to help run the business side of his music.</p>
+       <p style="border-inline-start:2px solid currentColor;padding-inline-start:1em"><strong style="display:block;font:inherit;font-size:clamp(3rem,7vw,6rem);line-height:1.1;letter-spacing:-.05em">≈70%</strong><strong>of his regular non-music work</strong>, by Jungle Laz’s estimate.</p>
+       <p>The assistant helps research contacts, prepare pitches and track follow-ups, giving Laszlo more time to write and record.</p>`],
     ['Music video · Jungle Boy', 'Costa Rica, on camera.',
       `<p>Laszlo filmed <em>Jungle Boy</em> while living in Costa Rica. The landscape and live performance anchor the video. AI-enhanced special effects add a second visual layer to the original footage.</p>
        ${videoThumbnail('jungle-boy-orb', 'Jungle Boy · official music video', 720)}
