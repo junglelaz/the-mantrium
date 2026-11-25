@@ -65,7 +65,7 @@ export function jungleLazStudy() {
        <p>Jungle Laz estimates that his AI personal assistant handles 70% of his regular work outside music production, giving him more time in the studio.</p>`],
     ['Music video · Jungle Boy', 'Costa Rica, on camera.',
       `<p>Laszlo filmed <em>Jungle Boy</em> while living in Costa Rica. The landscape and live performance anchor the video. AI-enhanced special effects add a second visual layer to the original footage.</p>
-       ${videoThumbnail('jungle-boy', 'Jungle Boy · official music video', 720, 1280, 'itAmJ9AsN18')}
+       ${videoThumbnail('jungle-boy-orb', 'Jungle Boy · official music video', 720)}
        ${fullVideo('Jungle Boy', 'itAmJ9AsN18')}`],
     ['Music video · Aura', 'An unlikely cast.',
       `<p><em>Aura</em> pairs cinematography with AI to bring Laszlo into a world populated by familiar faces. Stylised cameos depict Eminem, Tyla, Aura Boy, Cheech &amp; Chong and Pepe, among others. In this effects preview, Laszlo sits on a sports car in one shot and hangs upside down among floating islands in the next.</p>
@@ -75,8 +75,8 @@ export function jungleLazStudy() {
       `<p>A fingertip meets the surface of a pond. Colour spreads from the point of contact. The camera cuts wide, and the same red now runs through the landscape. This short excerpt shows how the AI-enhanced effect carries from a close-up into a wide shot.</p>
        ${videoThumbnail('messiah-fx', 'Messiah music video · AI special effects preview', 720)}
        ${fullVideo('Messiah', 'S0KqcCM_MhU')}`],
-    ['The first month', 'What followed.',
-      `<p>In the first month after the assistant launched, Jungle Laz secured an international artist management contract and separate sync licensing representation for his catalogue. <em>Jungle Boy</em> reached 100,000 streams, and three producers delivered remixes of the single.</p>`]
+    ['The first month', 'First-month achievements',
+      `<ul class="jungle-achievements" style="line-height:1.55;padding-inline-start:1.25em;display:grid;gap:.65em"><li>Secured an international artist management contract.</li><li>Secured separate sync licensing representation for the Jungle Laz catalogue.</li><li>Reached 100,000 streams with <em>Jungle Boy</em>.</li><li>Received <em>Jungle Boy</em> remixes from three producers.</li></ul>`]
   ];
 
   return chapters.map(([label, title, body], i) => {
