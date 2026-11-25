@@ -112,8 +112,8 @@ export function createScreenshotOrb(){
   close.setAttribute('aria-label','Close screenshot');
   playback.hidden=true;
   fallback.hidden=true;
-  hint.hidden=false;
-  hint.textContent=wide?'Scroll sideways to explore':'Scroll to see more';
+  hint.hidden=wide;
+  hint.textContent=wide?'':'Scroll to see more';
   const comparison=link.href.split('/').pop().match(/^(before|after)[-_.]/i) || next.alt.match(/^(before|after)\b/i);
   label.replaceChildren();
   if(comparison){const word=document.createElement('span');word.textContent=comparison[1].toUpperCase();label.append(word);}
