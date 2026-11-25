@@ -115,7 +115,7 @@ export function createScreenshotOrb(){
   close.setAttribute('aria-label','Close screenshot');
   playback.hidden=true;
   fallback.hidden=true;
-  hint.hidden=wide || identity;
+  hint.hidden=true;
   hint.textContent=wide?'':'Scroll to see more';
   const comparison=link.href.split('/').pop().match(/^(before|after)[-_.]/i) || next.alt.match(/^(before|after)\b/i);
   label.replaceChildren();
@@ -128,10 +128,15 @@ export function createScreenshotOrb(){
    scroll.scrollTop=0;
    const overflow=scroll.scrollWidth-scroll.clientWidth;
    scroll.scrollLeft=wide?overflow/2:0;
-   if(art)hint.hidden=wide?overflow<2:scroll.scrollHeight<=scroll.clientHeight+2;
+   syncScrollHint();
   });
  }
 
+ function syncScrollHint(){
+  const image=scroll.firstElementChild;
+  hint.hidden=!(active && image?.tagName==='IMG' && image.naturalHeight>image.naturalWidth && scroll.clientHeight>0 && scroll.scrollHeight>scroll.clientHeight+2);
+ }
+ new ResizeObserver(syncScrollHint).observe(scroll);
  function showFilm(link,ticket){
   label.replaceChildren();
   const id=link.dataset.youtubeId;
