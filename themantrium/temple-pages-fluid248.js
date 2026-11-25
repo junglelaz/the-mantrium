@@ -85,20 +85,7 @@ const studies=[
   "name": "True2Nature",
   "type": "Brand · Commerce · Connected operations",
   "intro": "Brand and packaging design, an eCommerce solution and a dashboard integrated with every digital endpoint, supported by a go-to-market and marketing strategy.",
-  "sections": [
-   [
-    "Brand and packaging",
-    "Brand and packaging design establish the True2Nature identity across its products and digital presence."
-   ],
-   [
-    "Connected commerce",
-    "An eCommerce solution and a dashboard integrated with all of True2Nature’s digital endpoints bring the business together, supported by a go-to-market and marketing strategy."
-   ],
-   [
-    "Before and after",
-    "Explore the transformation through the original and redesigned storefront, product and contact pages, followed by the recorded mobile and desktop Google PageSpeed results."
-   ]
-  ]
+  "sections": []
  },
  {
   "name": "Jungle Laz",
