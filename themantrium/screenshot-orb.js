@@ -8,6 +8,18 @@ export function createScreenshotOrb(){
    <div class="orb-playback" hidden><button type="button" class="orb-toggle">Play</button><input type="range" min="0" step="0.1" value="0" aria-label="Seek video"><button type="button" class="orb-mute">Mute</button></div>
    <a class="orb-fallback" target="_blank" rel="noopener" hidden>Open video</a><button type="button" class="orb-close" aria-label="Close screenshot">×</button></div>`;
  document.body.append(root);
+ const label=document.createElement('span');
+ label.className='orb-comparison-label';
+ root.querySelector('.crystal-orb').append(label);
+ const style=document.createElement('style');
+ style.textContent=`
+ .orb-comparison-label{display:none}
+ @media(min-width:651px) and (hover:hover){
+ .orb-comparison-label:not(:empty){display:block;position:absolute;z-index:5;top:12%;left:50%;transform:translateX(-50%);pointer-events:none;color:white;background:radial-gradient(ellipse,rgba(15,20,29,.92) 25%,transparent 74%);padding:.45em 1.45em;font:700 clamp(13px,1.45vw,24px)/1.2 sans-serif;letter-spacing:.17em;text-shadow:0 1px 3px black}
+ @media(prefers-reduced-motion:no-preference){.orb-comparison-label span{display:block;animation:orb-label-smoke .85s ease-out both}.crystal-viewer.is-fading .orb-comparison-label,.crystal-orb:has(.is-switching) .orb-comparison-label{filter:blur(5px);opacity:0;transition:filter .28s,opacity .28s}}
+ }
+ @keyframes orb-label-smoke{from{opacity:0;filter:blur(7px);transform:translateY(4px)}to{opacity:1;filter:blur(0);transform:translateY(0)}}`;
+ document.head.append(style);
  const scroll=root.querySelector('.crystal-scroll'),close=root.querySelector('.orb-close');
  const hint=root.querySelector('.orb-hint'),playback=root.querySelector('.orb-playback');
  const toggle=playback.querySelector('.orb-toggle'),mute=playback.querySelector('.orb-mute'),seek=playback.querySelector('input');
@@ -102,6 +114,9 @@ export function createScreenshotOrb(){
   fallback.hidden=true;
   hint.hidden=false;
   hint.textContent=wide?'Scroll sideways to explore':'Scroll to see more';
+  const comparison=link.href.split('/').pop().match(/^(before|after)[-_.]/i) || next.alt.match(/^(before|after)\b/i);
+  label.replaceChildren();
+  if(comparison){const word=document.createElement('span');word.textContent=comparison[1].toUpperCase();label.append(word);}
   scroll.replaceChildren(next);
   reveal(ticket);
   scroll.focus({preventScroll:true});
@@ -115,6 +130,7 @@ export function createScreenshotOrb(){
  }
 
  function showFilm(link,ticket){
+  label.replaceChildren();
   const id=link.dataset.youtubeId;
   const title=link.getAttribute('aria-label');
   const poster=link.querySelector('img').src;
