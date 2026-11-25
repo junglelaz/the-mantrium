@@ -218,8 +218,8 @@ export function createTemplePages({leave,select,onOpen=()=>{},onRoom=()=>{}}){
      <p>At <strong>Mantrium</strong>, we create <strong>bespoke, premium digital experiences</strong> that people remember.</p>
    </div></section><section class="chapter chapter-split copy-left" data-orb-side="right"><div class="chapter-copy">
      <h2>Who leads the work?</h2>
-     <p>A common pitfall in designing and developing with AI is treating it as the senior member of the team. It can produce a polished answer before anyone has asked whether the idea serves the audience or whether the system can support it.</p>
-     <p>At Mantrium, two world-class visionaries lead the studio. We use AI to explore and build. Our founders set the direction, challenge the results and take responsibility for what ships.</p>
+     <p>When a team gives AI the senior role, polished work can hide gaps. A checkout can look finished even when a failed payment leaves the customer stranded. The same oversight in the back end can leave a security vulnerability.</p>
+     <p>At Mantrium, our two founders are the senior practitioners leading the work. Laszlo directs the AI on the experience and reviews what people see, feel and do. Narayana directs it on the engineering and reviews how the system handles failure, protects data and performs under load. Together they set the brief, challenge assumptions and close gaps before release. They take responsibility for delivering work that is complete, dependable and robust.</p>
      <h3>Laszlo van Leeuwen</h3>
      <p>Laszlo leads narrative, creative direction, experience design and front-end development. He shapes the story an audience enters and the interactions that carry it forward. His experience includes projects for the Musk family, Fabric Ventures and Red Bull.</p>
      <h3>Narayana</h3>
