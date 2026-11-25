@@ -216,6 +216,14 @@ export function createTemplePages({leave,select,onOpen=()=>{},onRoom=()=>{}}){
      <p>Resonance can take many forms. An experience can invite <strong>reminiscence</strong>, stir <strong>wanderlust</strong>, evoke <strong>melancholy</strong> or spark a moment of <strong>soul-searching</strong>.</p>
      <p><strong>Memorable experience = Memorable brand.</strong></p>
      <p>At <strong>Mantrium</strong>, we create <strong>bespoke, premium digital experiences</strong> that people remember.</p>
+   </div></section><section class="chapter chapter-split copy-left" data-orb-side="right"><div class="chapter-copy">
+     <h2>Who leads the work?</h2>
+     <p>A common pitfall in designing and developing with AI is treating it as the senior member of the team. It can produce a polished answer before anyone has asked whether the idea serves the audience or whether the system can support it.</p>
+     <p>At Mantrium, two world-class visionaries lead the studio. We use AI to explore and build. Our founders set the direction, challenge the results and take responsibility for what ships.</p>
+     <h3>Laszlo van Leeuwen</h3>
+     <p>Laszlo leads narrative, creative direction, experience design and front-end development. He shapes the story an audience enters and the interactions that carry it forward. His experience includes projects for the Musk family, Fabric Ventures and Red Bull.</p>
+     <h3>Narayana</h3>
+     <p>Narayana leads back-end development, DevOps, infrastructure and cybersecurity. He builds custom large language models and designs the systems that keep an experience secure and responsive as its audience grows.</p>
    </div></section>` : '')+
    '<div class="reading-end" data-orb-side="right"><div><span class="eyebrow">CARRY THE IDEA WITH YOU</span><h2>Every return is<br><em>a new beginning.</em></h2><button data-finish>Return to the Mantrium <span class="cta-arrow" aria-hidden="true"></span></button></div></div>';
   stages=[...content.querySelectorAll('[data-orb-side]')];chapters=[...content.querySelectorAll('section')];
