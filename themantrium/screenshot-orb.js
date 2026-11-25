@@ -106,7 +106,7 @@ export function createScreenshotOrb(){
   }
   if(ticket!==request || !active)return;
   const art=link.classList.contains('jungle-art');
-  const identity=Boolean(link.closest('.jungle-identity'));
+  const identity=Boolean(link.closest('.jungle-identity')) || /\.png$/i.test(new URL(link.href).pathname) || link.dataset.orbFit==='contain';
   next.classList.toggle('orb-identity',identity);
   const wide=art && !identity && next.naturalWidth>next.naturalHeight;
   next.classList.toggle('orb-art-wide',wide);
