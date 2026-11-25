@@ -16,7 +16,7 @@ export function createScreenshotOrb(){
  .crystal-viewer .crystal-scroll img.orb-identity{width:100%;height:100%;min-width:0;max-width:100%;box-sizing:border-box;padding:16%;object-fit:contain;object-position:center}
  .orb-comparison-label{display:none}
  @media(min-width:651px) and (hover:hover){
- .orb-comparison-label:not(:empty){display:block;position:absolute;z-index:5;top:12%;left:50%;transform:translateX(-50%);pointer-events:none;color:white;background:radial-gradient(ellipse,rgba(15,20,29,.92) 25%,transparent 74%);padding:.45em 1.45em;font:700 clamp(13px,1.45vw,24px)/1.2 sans-serif;letter-spacing:.17em;text-shadow:0 1px 3px black}
+ .orb-comparison-label:not(:empty){display:block;position:absolute;z-index:5;top:8%;left:50%;transform:translateX(-50%);pointer-events:none;color:white;background:none;padding:0;font:700 clamp(13px,1.45vw,24px)/1.2 sans-serif;letter-spacing:.17em;text-shadow:0 0 3px #7392ad,0 0 8px #c7e7ff,0 1px 2px #46617b}
  @media(prefers-reduced-motion:no-preference){.orb-comparison-label span{display:block;animation:orb-label-smoke .85s ease-out both}.crystal-viewer.is-fading .orb-comparison-label,.crystal-orb:has(.is-switching) .orb-comparison-label{filter:blur(5px);opacity:0;transition:filter .28s,opacity .28s}}
  }
  @keyframes orb-label-smoke{from{opacity:0;filter:blur(7px);transform:translateY(4px)}to{opacity:1;filter:blur(0);transform:translateY(0)}}`;
