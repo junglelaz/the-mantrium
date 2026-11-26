@@ -38,7 +38,17 @@ let renderer;try{renderer=new T.WebGLRenderer({canvas:$('#world'),antialias:!mob
 const initialPixelRatio=Math.min(devicePixelRatio,mobileRender?1.5:1.4);
 const minimumPixelRatio=Math.min(initialPixelRatio,mobileRender?1.2:.8);
 renderer.setPixelRatio(initialPixelRatio);renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.5;const bloom=mobileRender?{render:draw=>draw()}:createBloom(renderer);
-const camera=new T.PerspectiveCamera(43,innerWidth/innerHeight,.1,1000);camera.position.set(0,105/Math.min(1,camera.aspect),1);camera.lookAt(0,0,0);
+const camera=new T.PerspectiveCamera(43,innerWidth/innerHeight,.1,1000);
+const refractionSize=new T.Vector2();
+camera.viewport=new T.Vector4();
+function sizeGlassRefraction(){
+ renderer.getDrawingBufferSize(refractionSize);
+ // In r170, a non-array camera's viewport sizes the glass transmission
+ // texture. The final scene and the glass edges still render at full size.
+ camera.viewport.set(0,0,Math.max(1,Math.ceil(refractionSize.x/2)),Math.max(1,Math.ceil(refractionSize.y/2)));
+}
+sizeGlassRefraction();
+camera.position.set(0,105/Math.min(1,camera.aspect),1);camera.lookAt(0,0,0);
 const ambient=new T.HemisphereLight('#e6efff','#536168',2.8);scene.add(ambient);const sun=new T.DirectionalLight('#fff0db',3.25);sun.position.set(-25,50,20);sun.castShadow=true;const shadowSize=mobileRender?1024:2048;sun.shadow.mapSize.set(shadowSize,shadowSize);Object.assign(sun.shadow.camera,{left:-90,right:90,top:90,bottom:-90,near:.5,far:250});sun.shadow.camera.updateProjectionMatrix();sun.shadow.bias=-.0004;sun.shadow.autoUpdate=false;sun.shadow.needsUpdate=true;scene.add(sun);
 const stone=new T.MeshStandardMaterial({color:'#c4ccbb',roughness:.78,metalness:.1}),gold=new T.MeshStandardMaterial({color:'#b99b60',metalness:.65,roughness:.3}),dark=new T.MeshStandardMaterial({color:'#283e36',roughness:.85}),leaf=new T.MeshStandardMaterial({color:'#264c3c',roughness:.95}),water=new T.MeshPhysicalMaterial({color:'#5eaeaa',metalness:.45,roughness:.16,transparent:true,opacity:.8});
 // Height-based atmospheric extinction hides every deep wall edge, independent of camera distance.
@@ -140,9 +150,19 @@ function deck(points,height,material,landingCreases=[],supportDepth=2000,drawTop
   const cuts=Array.from({length:steps+1},(_,j)=>j/steps);
   const outlets=wallOutlets.filter(o=>polygons[o.id]===points&&o.e===i);
   for(const o of outlets)cuts.push(o.t-o.width/(2*length),o.t+o.width/(2*length));
-  for(let j=0;j<steps;j++)for(let level=1;level<=STAIR_COUNT;level++){
-   const boundary=STEP_BASE+level*STAIR_RISE;let lo=j/steps,hi=(j+1)/steps,ha=edgeHeight(lo)-boundary,hb=edgeHeight(hi)-boundary;
-   if(ha*hb<0){for(let iteration=0;iteration<32;iteration++){const m=(lo+hi)/2,hm=edgeHeight(m)-boundary;if(ha*hm<=0)hi=m;else{lo=m;ha=hm}}cuts.push((lo+hi)/2)}
+  for(let j=0;j<steps;j++){
+   const begin=j/steps,end=(j+1)/steps,beginHeight=edgeHeight(begin),endHeight=edgeHeight(end);
+   if(beginHeight===endHeight)continue;
+   for(let level=1;level<=STAIR_COUNT;level++){
+    const boundary=STEP_BASE+level*STAIR_RISE;
+    let lo=begin,hi=end,ha=beginHeight-boundary;
+    if(ha*(endHeight-boundary)>=0)continue;
+    for(let iteration=0;iteration<32;iteration++){
+     const m=(lo+hi)/2,hm=edgeHeight(m)-boundary;
+     if(ha*hm<=0)hi=m;else{lo=m;ha=hm;}
+    }
+    cuts.push((lo+hi)/2);
+   }
   }
   // Split exactly at portal planes; sampling must never round an opening wider or narrower.
   for(const c of crossings){
@@ -292,7 +312,10 @@ for(const site of templeSites){
  const portalMat=new T.MeshBasicMaterial({color:site.color,transparent:true,opacity:.15,side:T.DoubleSide});
  for(let side=0;side<4;side++){const angle=side*Math.PI/2;const portal=mesh(new T.PlaneGeometry(3.2,2.5),portalMat,Math.sin(angle)*1.96,2.05,Math.cos(angle)*1.96,temple);portal.rotation.y=angle;portals.push(portal)}
 }
-const nature=createNature(scene,polygons,templeSites,navigation);
+// The hall sun and shadow casters are stationary except for the secret
+// bridge, scene switches, foliage detail and asynchronously loaded trees.
+const invalidateHallShadow=()=>{sun.shadow.needsUpdate=true;};
+const nature=createNature(scene,polygons,templeSites,navigation,invalidateHallShadow);
 const glassApproaches=createGlassApproaches(scene,templeSites,polygons);
 const orbMat=new T.ShaderMaterial({transparent:true,uniforms:{bumpOffset:{value:new T.Vector2()},palette:{value:templeSites.map(s=>new T.Color(s.color))},colourCount:{value:0},glitch:{value:0},time:{value:0},pigment:{value:0},tint:{value:new T.Color('#d9a751')}},vertexShader:'uniform vec2 bumpOffset;uniform float glitch;uniform float time;varying vec3 p;varying vec3 n;void main(){p=position;n=normalize(normalMatrix*normal);vec3 distorted=position;distorted.xz+=bumpOffset;distorted.x+=sin(floor(position.y*18.)*7.+time*80.)*glitch*.3;gl_Position=projectionMatrix*modelViewMatrix*vec4(distorted,1.);}',fragmentShader:'uniform vec3 palette[4];uniform float colourCount;uniform float glitch;varying vec3 p;varying vec3 n;uniform float time;uniform float pigment;uniform vec3 tint;void main(){if(glitch>0.&&fract(sin(floor(gl_FragCoord.y/3.)*12.98+floor(time*30.))*43758.54)<glitch*.7)discard;float flow=sin(p.y*9.+sin(p.x*7.+time*.7)*2.+p.z*4.-time)*.5+.5;float rim=pow(1.-abs(n.z),2.);vec3 grey=vec3(.66,.79,.77);vec3 pigmentColor=palette[0];float wave=sin(p.y*5.+sin(p.x*6.+time*.35)+p.z*4.-time*.3)*.5+.5;for(int i=1;i<4;i++){float enabled=clamp(colourCount-float(i),0.,1.);float lane=sin(p.x*5.+p.y*7.+p.z*3.+float(i)*2.1+sin(time*.4+p.z*5.))* .5+.5;pigmentColor=mix(pigmentColor,palette[i],smoothstep(.28,.72,lane)*enabled);}vec3 spectrum=.55+.45*cos(6.28318*(vec3(0.,.33,.67)+wave*.7+time*.035));pigmentColor=mix(pigmentColor,spectrum,clamp(colourCount-3.,0.,1.)*pigment);vec3 amber=mix(pigmentColor*.45,pigmentColor*1.25,flow);vec3 col=mix(grey,amber,min(1.,colourCount)*(.3+.7*flow));gl_FragColor=vec4(mix(col+rim*.6,vec3(.65,1.,.93),glitch*.6),(.58+rim*.4)*(1.-glitch*.5));}'});const orb=mesh(new T.SphereGeometry(.65,48,32),orbMat,player.x,player.height+FLOAT_HEIGHT,player.z);const glow=new T.PointLight('#dcefe1',4,7);orb.add(glow);
 const dustGeo=new T.BufferGeometry(),dustPositions=[],dustSeeds=[],dustSizes=[];
@@ -536,9 +559,11 @@ const mouseTilt=new T.Vector2(),smoothedTilt=new T.Vector2();
 addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||!finePointer.matches)return;mouseTilt.set((e.clientX/innerWidth-.5)*2,(e.clientY/innerHeight-.5)*2)});
 document.documentElement.addEventListener('pointerleave',()=>mouseTilt.set(0,0));addEventListener('blur',()=>mouseTilt.set(0,0));
 let visualHeight=player.height;let lastSecretPhase=secret.state.phase;let last=performance.now();
-let frameBudgetStart=0,framesInBudget=0,slowFramesInBudget=0,lastShadowUpdate=-Infinity;
+let frameBudgetStart=0,framesInBudget=0,slowFramesInBudget=0,healthyWindows=0,recoverAfter=0;
+const arrivalScreen=document.querySelector('#arrival');
 function adjustRenderResolution(now,frameTime){
- if(document.hidden){
+ if(document.hidden || arrivalScreen?.isConnected || frameTime>1500){
+  healthyWindows=0;
   frameBudgetStart=0;
   framesInBudget=0;
   slowFramesInBudget=0;
@@ -551,9 +576,17 @@ function adjustRenderResolution(now,frameTime){
  if(elapsed<1000)return;
  const fps=framesInBudget*1000/elapsed;
  const pixelRatio=renderer.getPixelRatio();
- if(pixelRatio>minimumPixelRatio&&(fps<53||slowFramesInBudget/framesInBudget>.15)){
-  renderer.setPixelRatio(Math.max(minimumPixelRatio,pixelRatio*.85));
- }
+ const slowShare=slowFramesInBudget/framesInBudget;
+ if(fps<53 || slowShare>.15){
+  healthyWindows=0;
+  recoverAfter=now+15000;
+  if(pixelRatio>minimumPixelRatio)renderer.setPixelRatio(Math.max(minimumPixelRatio,pixelRatio*.85));
+ }else if(fps>=58 && slowShare<.03 && now>=recoverAfter && pixelRatio<initialPixelRatio){
+  if(++healthyWindows>=6){
+   renderer.setPixelRatio(Math.min(initialPixelRatio,pixelRatio/.85));
+   healthyWindows=0;
+  }
+ }else healthyWindows=0;
  frameBudgetStart=now;
  framesInBudget=0;
  slowFramesInBudget=0;
@@ -582,14 +615,13 @@ function drawBoundaryBump(now){
  const shift=phase<1 ? .22*Math.sin(phase*Math.PI*2)*(1-phase)**2 : 0;
  orbMat.uniforms.bumpOffset.value.copy(bumpDirection).multiplyScalar(shift);
 }
-const target=new T.Vector3(),look=new T.Vector3();function animate(now){requestAnimationFrame(animate);adjustRenderResolution(now,now-last);
- if(!document.hidden&&now-lastShadowUpdate>=(mobileRender?350:125)&&interiors.state.index<0){
-  sun.shadow.needsUpdate=true;
-  lastShadowUpdate=now;
- }
- const dt=Math.min((now-last)/1000,.08);last=now;const t=now/1000;orbMat.uniforms.time.value=reduced?0:t;const hallVisible=interiors.state.blend<1 || quickNav.open || quickNav.active || interiors.state.target===0;
+let lastSanctumMenu=false;
+const target=new T.Vector3(),look=new T.Vector3();function animate(now){requestAnimationFrame(animate);adjustRenderResolution(now,now-last);sizeGlassRefraction();
+ const dt=Math.min((now-last)/1000,.08);last=now;const t=now/1000;orbMat.uniforms.time.value=reduced?0:t;const hallVisible=(secret.state.phase!=='chamber' && (interiors.state.blend<1 || interiors.state.target===0)) || quickNav.active || quickNav.open;
  if(hallVisible){updateAtmosphere(dt,t);cosmos.update(t,reduced);celestial.update(t,reduced,.35-4*secret.state.amount);nature.update(t,reduced,orb.position);glassApproaches.update(t,reduced,camera.position.y,orb.position);clouds.update(t,reduced,mouseTilt,camera.position.y>32,orb.position,camera.position.y);}
- secret.update(dt,player);if(secret.state.phase!==lastSecretPhase){if(secret.state.phase==='falling')score.cue('fall');lastSecretPhase=secret.state.phase;}navigation.orbs=interiors.state.index<0&&secret.state.phase!=='chamber'?[...inhabitants.bodies,...presence.bodies,{owner:'player',x:player.x,z:player.z,y:player.height+FLOAT_HEIGHT,radius:.65}]:[];updateTempleTransfer(dt);interiors.update(dt,reduced);if(homePending&&interiors.state.index<0)returnToOpening();if(score.gains)score.setInterior(interiors.state.index,interiors.state.blend);
+ const bridgeWasMoving=secret.state.phase==='lowering';
+ secret.update(dt,player);
+ if(bridgeWasMoving || secret.state.phase!==lastSecretPhase)invalidateHallShadow();if(secret.state.phase!==lastSecretPhase){if(secret.state.phase==='falling')score.cue('fall');lastSecretPhase=secret.state.phase;}navigation.orbs=interiors.state.index<0&&secret.state.phase!=='chamber'?[...inhabitants.bodies,...presence.bodies,{owner:'player',x:player.x,z:player.z,y:player.height+FLOAT_HEIGHT,radius:.65}]:[];updateTempleTransfer(dt);interiors.update(dt,reduced);if(homePending&&interiors.state.index<0)returnToOpening();if(score.gains)score.setInterior(interiors.state.index,interiors.state.blend);
 if(secret.state.phase==='lowering'||secret.state.phase==='opening'){const heights=navigation.surfaces(player.x,player.z);if(heights.length)player.height=heights.sort((a,b)=>Math.abs(a-player.height)-Math.abs(b-player.height))[0];}
 document.body.classList.toggle('secret-interior',secret.state.phase==='chamber');if(secret.state.phase==='chamber'){orb.visible=true;checkTemple();}
 if(visited){const elapsed=t-pigmentAt;orbMat.uniforms.pigment.value=T.MathUtils.clamp(elapsed/.8,0,1);orbMat.uniforms.colourCount.value=Math.max(0,journey.completed.size-1)+orbMat.uniforms.pigment.value}if(!reduced){jets.forEach(({p,curve,offset})=>p.position.copy(curve.getPoint((t*.5+offset)%1)));portals.forEach(portal=>portal.material.opacity=.13+Math.sin(t)*.035)}if(entered&&!visitorView&&!panel.open&&!quickNav.active&&!templeTransfer&&!secret.exiting&&!document.body.classList.contains('birth-reading-active')){let x=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0)+stick.x,z=(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0)+stick.y;const input=frameInput.set(x,z).clampLength(0,1);input.multiplyScalar(7);
@@ -630,6 +662,9 @@ camera.position.z+=smoothedTilt.y*.08*(1-tiltScale);
 hoverLook.x+=smoothedTilt.x*.12*(1-tiltScale);hoverLook.z+=smoothedTilt.y*.08*(1-tiltScale);
 if(!templeTransfer)camera.lookAt(hoverLook);
 const menuActive=quickNav.update(dt,reduced);
+if(secret.state.phase==='chamber' && menuActive!==lastSanctumMenu)invalidateHallShadow();
+lastSanctumMenu=menuActive;
+if(hallVisible)nature.updateLeafDetail(camera,innerHeight*renderer.getPixelRatio());
 updateVisitorView(now);
 secret.updateLabel(camera);if(secret.exiting||secret.state.justReturned){orbMat.uniforms.glitch.value=reduced?0:secret.glitch;orb.visible=!secret.orbHidden;}
 const speechZoomLimit=mobileView?.65:.8;
@@ -663,6 +698,7 @@ export function arrivalCloudVeil(){
   for(const [object] of visibility)if(!object.userData.softClouds&&!object.isLight)object.visible=false;
   renderCloudScene(renderer,scene,camera);
   veil.getContext('2d').drawImage(renderer.domElement,0,0);
- }finally{for(const [object,visible] of visibility)object.visible=visible;}
+ }finally{for(const [object,visible] of visibility)object.visible=visible;invalidateHallShadow();}
  return veil;
 }
+

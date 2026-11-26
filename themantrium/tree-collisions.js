@@ -20,18 +20,63 @@ export function createTreeCollisions(){
   }
  }
  // Player collision uses real bark triangles, not the transparent leaf cards.
- const branchGrid=new Map(),branchCell=1,closest=new T.Vector3();
+ // All tree instances share one triangle grid in model space. A narrow
+ // phase transforms only nearby triangles, preserving world-space distances.
+ const branchInstances=[],queryBox=new T.Box3(),localQuery=new T.Box3();
+ const triangle=new T.Triangle(),closest=new T.Vector3(),seen=new Set();
+ function readFace(geometry,id){
+  const p=geometry.attributes.position,index=geometry.index,i=id*3;
+  triangle.a.fromBufferAttribute(p,index?index.getX(i):i);
+  triangle.b.fromBufferAttribute(p,index?index.getX(i+1):i+1);
+  triangle.c.fromBufferAttribute(p,index?index.getX(i+2):i+2);
+ }
  function addBranches(geometry,matrices){
-  const p=geometry.attributes.position,index=geometry.index;
-  for(const matrix of matrices)for(let i=0;i<(index?.count||p.count);i+=3){
-   const vertices=[0,1,2].map(j=>new T.Vector3().fromBufferAttribute(p,index?index.getX(i+j):i+j).applyMatrix4(matrix));
-   const triangle=new T.Triangle(...vertices),bounds=new T.Box3().setFromPoints(vertices);
-   for(let x=Math.floor(bounds.min.x/branchCell);x<=Math.floor(bounds.max.x/branchCell);x++)for(let y=Math.floor(bounds.min.y/branchCell);y<=Math.floor(bounds.max.y/branchCell);y++)for(let z=Math.floor(bounds.min.z/branchCell);z<=Math.floor(bounds.max.z/branchCell);z++){const id=key(x,y,z);if(!branchGrid.has(id))branchGrid.set(id,[]);branchGrid.get(id).push(triangle);}
+  geometry.computeBoundingBox();
+  const extent=geometry.boundingBox.getSize(new T.Vector3());
+  const size=Math.max(extent.x,extent.y,extent.z,1e-4)/24;
+  const bins=new Map(),count=(geometry.index?.count??geometry.attributes.position.count)/3;
+  for(let id=0;id<count;id++){
+   readFace(geometry,id);
+   box.makeEmpty().expandByPoint(triangle.a).expandByPoint(triangle.b).expandByPoint(triangle.c);
+   for(let x=Math.floor(box.min.x/size);x<=Math.floor(box.max.x/size);x++){
+    for(let y=Math.floor(box.min.y/size);y<=Math.floor(box.max.y/size);y++){
+     for(let z=Math.floor(box.min.z/size);z<=Math.floor(box.max.z/size);z++){
+      const cellKey=key(x,y,z);
+      let ids=bins.get(cellKey);
+      if(!ids){ids=[];bins.set(cellKey,ids);}
+      ids.push(id);
+     }
+    }
+   }
   }
+  for(const matrix of matrices)branchInstances.push({
+   geometry,bins,size,matrix,inverse:matrix.clone().invert(),
+   bounds:geometry.boundingBox.clone().applyMatrix4(matrix)
+  });
  }
  function occupiedBranches(x,y,z,r){
-  point.set(x,y,z);const seen=new Set();
-  for(let i=Math.floor((x-r)/branchCell);i<=Math.floor((x+r)/branchCell);i++)for(let j=Math.floor((y-r)/branchCell);j<=Math.floor((y+r)/branchCell);j++)for(let k=Math.floor((z-r)/branchCell);k<=Math.floor((z+r)/branchCell);k++)for(const triangle of branchGrid.get(key(i,j,k))||[]){if(seen.has(triangle))continue;seen.add(triangle);triangle.closestPointToPoint(point,closest);if(closest.distanceToSquared(point)<r*r)return true;}
+  point.set(x,y,z);
+  queryBox.min.copy(point).addScalar(-r);queryBox.max.copy(point).addScalar(r);
+  for(const tree of branchInstances){
+   if(!tree.bounds.intersectsBox(queryBox))continue;
+   localQuery.copy(queryBox).applyMatrix4(tree.inverse).intersect(tree.geometry.boundingBox);
+   if(localQuery.isEmpty())continue;
+   seen.clear();
+   const min=localQuery.min,max=localQuery.max,size=tree.size;
+   for(let i=Math.floor(min.x/size);i<=Math.floor(max.x/size);i++)
+    for(let j=Math.floor(min.y/size);j<=Math.floor(max.y/size);j++)
+     for(let k=Math.floor(min.z/size);k<=Math.floor(max.z/size);k++){
+      const ids=tree.bins.get(key(i,j,k));
+      if(!ids)continue;
+      for(const id of ids){
+       if(seen.has(id))continue;
+       seen.add(id);readFace(tree.geometry,id);
+       triangle.a.applyMatrix4(tree.matrix);triangle.b.applyMatrix4(tree.matrix);triangle.c.applyMatrix4(tree.matrix);
+       triangle.closestPointToPoint(point,closest);
+       if(closest.distanceToSquared(point)<r*r)return true;
+      }
+     }
+  }
   return false;
  }
  function visit(minX,minY,minZ,maxX,maxY,maxZ,fn){for(let x=Math.floor(minX/cell);x<=Math.floor(maxX/cell);x++)for(let y=Math.floor(minY/cell);y<=Math.floor(maxY/cell);y++)for(let z=Math.floor(minZ/cell);z<=Math.floor(maxZ/cell);z++){const b=grid.get(key(x,y,z));if(b&&fn(b))return true;}return false;}
