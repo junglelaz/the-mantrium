@@ -1,3 +1,4 @@
+import {mergeGeometries} from './vendor/BufferGeometryUtils.js';
 import {createScreenshotOrb} from './screenshot-orb.js?v=spacing237';
 import {createBrandEmblem,create3PMEmblem} from './pedestal-emblems.js?v=spacing237';
 import {createInteriorStoneWear} from './stone-wear.js?v=spacing237';
@@ -54,6 +55,21 @@ export function createInteriors(renderer,sites,orbMaterial){
   });
   const readingOrbMaterial=orbMaterial.clone();readingOrbMaterial.uniforms={...orbMaterial.uniforms,readingFlow:{value:0},scrollPhase:{value:0},templeTint:{value:new T.Color(site.color)}};readingOrbMaterial.fragmentShader='uniform float readingFlow;uniform float scrollPhase;uniform vec3 templeTint;'+readingOrbMaterial.fragmentShader;readingOrbMaterial.fragmentShader=readingOrbMaterial.fragmentShader.replace('gl_FragColor=vec4(mix(col',`float slowFlow=sin(p.y*6.+sin(p.x*5.+time*.7+scrollPhase*5.)*1.8+p.z*4.-time*.85+scrollPhase*8.)*.5+.5;vec3 innerColour=mix(vec3(.76,.9,.87),templeTint,.28+slowFlow*.65);innerColour*=.7+.5*(sin(p.x*8.-p.y*4.+time*.6+scrollPhase*6.)*.5+.5);col=mix(col,innerColour,readingFlow*.9);gl_FragColor=vec4(mix(col`);readingOrbMaterial.depthTest=false;readingOrbMaterial.depthWrite=false;const orb=new T.Mesh(new T.SphereGeometry(.62,32,24),readingOrbMaterial);orb.renderOrder=100;scene.add(orb);const companionLight=new T.PointLight(site.color,55,18,1.6);scene.add(companionLight);
   dressTemple(scene,index,{stone,floor,metal});
+  // Columns, collars, gates and plinths are fixed. Keep the selectable
+  // exhibits, moving lights and translucent details as separate objects.
+  for(const material of [stone,metal,glow]){
+   const parts=scene.children.filter(part=>part.isMesh && part.material===material && !part.children.length);
+   if(parts.length<2)continue;
+   const pieces=parts.map(part=>{
+    part.updateMatrix();
+    return part.geometry.clone().applyMatrix4(part.matrix);
+   });
+   const geometry=mergeGeometries(pieces);
+   pieces.forEach(piece=>piece.dispose());
+   if(!geometry)continue;
+   scene.add(new T.Mesh(geometry,material));
+   for(const part of parts){scene.remove(part);part.geometry.dispose();}
+  }
   const camera=new T.PerspectiveCamera(43,1,.1,100);
   return {scene,camera,orb,exhibits,light,companionLight,mist,atmosphere};
  }
@@ -298,3 +314,4 @@ export function createInteriors(renderer,sites,orbMaterial){
 
  return {state,enter,leave,move,update,render,hideArrivalOrb(){deferOrb=true;if(state.index>=0)rooms[state.index].orb.visible=false;},returnImmediately(){pages.reset();selection=null;document.body.classList.remove('interior-active');if(state.index>=0){state.index=-1;state.blend=0;settle=0;exitReveal=0;reveal=0;deferOrb=false;entry?.prepareExit?.();orbMaterial.uniforms.glitch.value=0;onExit();}},get near(){return near}};
 }
+

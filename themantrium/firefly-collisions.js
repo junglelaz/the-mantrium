@@ -43,12 +43,15 @@ export function createFireflyCollisions(scene){
     const materials=Array.isArray(object.material)?object.material:[object.material];if(!materials.some(m=>m&&!m.transparent&&m.visible!==false))return;
     object.geometry.computeBoundingBox();
     if(object.isInstancedMesh){for(let i=0;i<object.count;i++){object.getMatrixAt(i,instanceMatrix);worldMatrix.multiplyMatrices(object.matrixWorld,instanceMatrix);add({box:object.geometry.boundingBox.clone().applyMatrix4(worldMatrix).expandByScalar(radius),foliage:true});}return;}
-    const geometry=object.geometry;let tree=geometryTrees.get(geometry);if(!tree){tree=buildTree(geometry);geometryTrees.set(geometry,tree);}
-    const entry={box:tree.box.clone().applyMatrix4(object.matrixWorld).expandByScalar(radius),geometry,tree,inverse:object.matrixWorld.clone().invert(),object,version:geometry.attributes.position.version};
+    const geometry=object.geometry;
+    const entry={box:geometry.boundingBox.clone().applyMatrix4(object.matrixWorld).expandByScalar(radius),geometry,inverse:object.matrixWorld.clone().invert(),object,version:geometry.attributes.position.version};
     add(entry);dynamic.push(entry);
    });
   }
-  for(const entry of dynamic)if(entry.version!==entry.geometry.attributes.position.version){refit(entry.geometry,entry.tree);entry.version=entry.geometry.attributes.position.version;entry.box.copy(entry.tree.box).applyMatrix4(entry.object.matrixWorld).expandByScalar(radius);}
+  for(const entry of dynamic)if(entry.version!==entry.geometry.attributes.position.version){const tree=geometryTrees.get(entry.geometry);
+   if(tree){refit(entry.geometry,tree);entry.geometry.boundingBox.copy(tree.box);}
+   else entry.geometry.computeBoundingBox();
+   entry.version=entry.geometry.attributes.position.version;entry.box.copy(entry.geometry.boundingBox).applyMatrix4(entry.object.matrixWorld).expandByScalar(radius);}
  }
  function intersects(tree,geometry,farSq){
   if(!localRay.intersectBox(tree.box,point)||point.distanceToSquared(localRay.origin)>farSq&&!tree.box.containsPoint(localRay.origin))return false;
@@ -68,7 +71,12 @@ export function createFireflyCollisions(scene){
   for(const offset of offsets){start.copy(from).add(offset);end.copy(to).add(offset).addScaledVector(direction,radius);ray.set(start,direction);
    for(const entry of candidates){
     if(entry.foliage){if(entry.box.containsPoint(start)||ray.intersectBox(entry.box,point)&&point.distanceToSquared(start)<=(distance+radius)**2)return false;continue;}
-    localRay.copy(ray).applyMatrix4(entry.inverse);localEnd.copy(end).applyMatrix4(entry.inverse);if(intersects(entry.tree,entry.geometry,localEnd.distanceToSquared(localRay.origin)))return false;
+    localRay.copy(ray).applyMatrix4(entry.inverse);localEnd.copy(end).applyMatrix4(entry.inverse);const farSq=localEnd.distanceToSquared(localRay.origin);
+    const bounds=entry.geometry.boundingBox;
+    if(!bounds.containsPoint(localRay.origin) && (!localRay.intersectBox(bounds,point) || point.distanceToSquared(localRay.origin)>farSq))continue;
+    let tree=geometryTrees.get(entry.geometry);
+    if(!tree){tree=buildTree(entry.geometry);geometryTrees.set(entry.geometry,tree);}
+    if(intersects(tree,entry.geometry,farSq))return false;
    }
   }
   return true;
