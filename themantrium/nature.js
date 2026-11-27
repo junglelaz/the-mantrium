@@ -1,3 +1,4 @@
+import {createTreeDetail, loadTreeDetail} from './tree-detail-27a.js';
 import {loadCompressedModel} from './compressed-model.js?v=spacing237';
 import {createStoneWear} from './stone-wear.js?v=spacing237';
 import {createWallWater,wallWaterSites} from './wall-water.js?v=spacing237';
@@ -55,11 +56,12 @@ export function createNature(scene,polygons,temples=[],navigation=null,invalidat
  const leafGeos=Array.from({length:7},(_,i)=>makeSprig(i));
  const leafLevels=leafGeos.map(geometry=>[leafIndices(geometry,[0,2,5]),leafIndices(geometry,[0,1,3,4,5]),geometry.index]);
  const foliagePatches=[];
+ const treeDetail=createTreeDetail();
  const patchCenter=new T.Vector3();
  function updateLeafDetail(camera,viewportHeight){
   camera.updateMatrixWorld();
   const focalPixels=viewportHeight/(2*Math.tan(camera.fov*Math.PI/360));
-  let changed=false;
+  let changed=treeDetail.update(camera,viewportHeight);
   for(const patch of foliagePatches){
    const sphere=patch.mesh.boundingSphere;
    patchCenter.copy(sphere.center).applyMatrix4(camera.matrixWorldInverse);
@@ -246,11 +248,13 @@ export function createNature(scene,polygons,temples=[],navigation=null,invalidat
   const g=new T.TubeGeometry(curve,24,.22,7,false),a=g.attributes.position;
   for(let j=0;j<=24;j++){const center=curve.getPointAt(j/24),scale=Math.pow(1-j/24,.8)*.94+.06;for(let k=0;k<=7;k++){const i=j*8+k;a.setXYZ(i,center.x+(a.getX(i)-center.x)*scale,center.y+(a.getY(i)-center.y)*scale,center.z+(a.getZ(i)-center.z)*scale);}}g.computeVertexNormals();const root=new T.Mesh(g,barkMat);root.castShadow=root.receiveShadow=true;group.add(root);
  }
+ const treeLevels=loadTreeDetail();
  loadCompressedModel(new GLTFLoader(),'public/nature/tree/tree-packed.bin','public/nature/tree/tree.glb?v=foliage111',gltf=>{
   gltf.scene.updateMatrixWorld(true);const bounds=new T.Box3().setFromObject(gltf.scene),height=bounds.max.y-bounds.min.y;
   treeCollisions.flightBounds=[];
   treePoints.forEach((p,i)=>{const scale=(3.8+(p.variant%3)*.55)/height;dummy.position.set(p.x+p.nx*.7,p.y-bounds.min.y*scale,p.z+p.nz*.7);dummy.rotation.set(p.nz*.13,p.angle+p.variant*.7,-p.nx*.13);dummy.scale.setScalar(scale);dummy.updateMatrix();treeCollisions.flightBounds.push(bounds.clone().applyMatrix4(dummy.matrix).expandByScalar(.5));});
-  gltf.scene.traverse(source=>{if(!source.isMesh)return;const geo=source.geometry.clone().applyMatrix4(source.matrixWorld),mat=source.material.clone(),isLeaf=/leaves/i.test(source.name+' '+mat.name);mat.transparent=false;mat.depthWrite=true;if(isLeaf){mat.alphaTest=.1;mat.side=T.DoubleSide;mat.roughness=.8;mat.color.set('#b8d39a');animateLeaves(mat,.045);}const matrices=[];
+  gltf.scene.traverse(source=>{if(!source.isMesh)return;const geo=source.geometry.clone().applyMatrix4(source.matrixWorld),mat=source.material.clone(),isLeaf=/leaves/i.test(source.name+' '+mat.name);mat.transparent=false;mat.depthWrite=true;if(isLeaf){mat.alphaTest=.1;mat.side=T.DoubleSide;mat.roughness=.8;mat.color.set('#b8d39a');animateLeaves(mat,.045);}
+   const matrices=[],meshes=[];
    for(const p of treePoints){
     const scale=(3.8+(p.variant%3)*.55)/height;
     dummy.position.set(p.x+p.nx*.7,p.y-bounds.min.y*scale,p.z+p.nz*.7);
@@ -259,9 +263,11 @@ export function createNature(scene,polygons,temples=[],navigation=null,invalidat
     const tree=new T.Mesh(geo,mat);
     tree.matrixAutoUpdate=false;tree.matrix.copy(dummy.matrix);tree.matrixWorldNeedsUpdate=true;
     tree.userData.treeCollider=true;tree.castShadow=tree.receiveShadow=true;group.add(tree);
+    meshes.push(tree);
     matrices.push(tree.matrix);
    }
    if(!isLeaf)treeCollisions.addBranches(geo,matrices);
+   treeLevels.then(levels=>treeDetail.register(geo,meshes,levels.get(source.name)));
   });
   invalidateShadow();
  },()=>console.warn('Tree asset unavailable.'));

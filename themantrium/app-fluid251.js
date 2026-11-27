@@ -625,9 +625,15 @@ const target=new T.Vector3(),look=new T.Vector3();function animate(now){requestA
 if(secret.state.phase==='lowering'||secret.state.phase==='opening'){const heights=navigation.surfaces(player.x,player.z);if(heights.length)player.height=heights.sort((a,b)=>Math.abs(a-player.height)-Math.abs(b-player.height))[0];}
 document.body.classList.toggle('secret-interior',secret.state.phase==='chamber');if(secret.state.phase==='chamber'){orb.visible=true;checkTemple();}
 if(visited){const elapsed=t-pigmentAt;orbMat.uniforms.pigment.value=T.MathUtils.clamp(elapsed/.8,0,1);orbMat.uniforms.colourCount.value=Math.max(0,journey.completed.size-1)+orbMat.uniforms.pigment.value}if(!reduced){jets.forEach(({p,curve,offset})=>p.position.copy(curve.getPoint((t*.5+offset)%1)));portals.forEach(portal=>portal.material.opacity=.13+Math.sin(t)*.035)}if(entered&&!visitorView&&!panel.open&&!quickNav.active&&!templeTransfer&&!secret.exiting&&!document.body.classList.contains('birth-reading-active')){let x=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0)+stick.x,z=(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0)+stick.y;const input=frameInput.set(x,z).clampLength(0,1);input.multiplyScalar(7);
+let dx=input.x*dt,dz=input.y*dt;
 if(stickPointer!==null)velocity.copy(input);
-else velocity.lerp(input,1-Math.exp(-18*dt));
-const dx=velocity.x*dt,dz=velocity.y*dt;
+else {
+ // Integrate exponential acceleration over the whole frame, including key release.
+ const oldX=velocity.x,oldZ=velocity.y;
+ velocity.lerp(input,-Math.expm1(-18*dt));
+ dx+=(oldX-velocity.x)/18;
+ dz+=(oldZ-velocity.y)/18;
+}
 const inRoom=interiors.state.index>=0;
 const position=inRoom?interiors.state:player;
 const fromX=position.x,fromZ=position.z;
@@ -664,8 +670,8 @@ if(!templeTransfer)camera.lookAt(hoverLook);
 const menuActive=quickNav.update(dt,reduced);
 if(secret.state.phase==='chamber' && menuActive!==lastSanctumMenu)invalidateHallShadow();
 lastSanctumMenu=menuActive;
-if(hallVisible)nature.updateLeafDetail(camera,innerHeight*renderer.getPixelRatio());
 updateVisitorView(now);
+if(hallVisible)nature.updateLeafDetail(camera,innerHeight*renderer.getPixelRatio());
 secret.updateLabel(camera);if(secret.exiting||secret.state.justReturned){orbMat.uniforms.glitch.value=reduced?0:secret.glitch;orb.visible=!secret.orbHidden;}
 const speechZoomLimit=mobileView?.65:.8;
 const speechCameraSettled=(reduced||now-descent>=4500)&&!quickNav.active&&!quickNav.open&&!homeReturn&&!templeTransfer&&Math.abs(zoomBlend-zoomTarget)<.002&&(secret.state.phase!=='chamber'||secret.state.arrival>=1.8);
