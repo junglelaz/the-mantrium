@@ -66,11 +66,12 @@ export function createNavigation(polygons,temples){
  function indexOutline(points,id,crossing){
   if(!points.length)return;
   const xs=points.map(p=>p[0]),zs=points.map(p=>p[1]);
-  const entry={points,id,crossing};
-  for(let i=Math.floor(Math.min(...xs)/cellSize);i<=Math.floor(Math.max(...xs)/cellSize);i++){
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minZ=Math.min(...zs),maxZ=Math.max(...zs);
+  const entry={points,id,crossing,minX,maxX,minZ,maxZ};
+  for(let i=Math.floor(minX/cellSize);i<=Math.floor(maxX/cellSize);i++){
    if(!cells.has(i))cells.set(i,new Map());
    const column=cells.get(i);
-   for(let j=Math.floor(Math.min(...zs)/cellSize);j<=Math.floor(Math.max(...zs)/cellSize);j++){
+   for(let j=Math.floor(minZ/cellSize);j<=Math.floor(maxZ/cellSize);j++){
     if(!column.has(j))column.set(j,[]);
     column.get(j).push(entry);
    }
@@ -83,7 +84,8 @@ export function createNavigation(polygons,temples){
  function collectSurfaces(x,z,hs){
   hs.length=0;
   const nearby=cells.get(Math.floor(x/cellSize))?.get(Math.floor(z/cellSize))||empty;
-  for(const {points,id,crossing} of nearby){
+  for(const {points,id,crossing,minX,maxX,minZ,maxZ} of nearby){
+   if(x<minX||x>maxX||z<minZ||z>maxZ)continue;
    if(!inPolygon(x,z,points))continue;
    const h=crossing?tunnelHeight(crossing,x,z):id<2?.15:ribbonHeight(id-2,x,z);
    hs.push(api.heightTransform?api.heightTransform(x,z,h,id):h);
