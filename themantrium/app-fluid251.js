@@ -56,8 +56,21 @@ function fadeIntoDepth(material){
 function mineralTexture(seed){
  const size=256,canvas=document.createElement('canvas');canvas.width=canvas.height=size;const ctx=canvas.getContext('2d'),pixels=ctx.createImageData(size,size);
  const hash=(x,y)=>{let n=Math.imul(x+seed,374761393)^Math.imul(y+seed,668265263);n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295};
- const noise=(x,y,scale)=>{const gx=x/size*scale,gy=y/size*scale,ix=Math.floor(gx),iy=Math.floor(gy),tx=gx-ix,ty=gy-iy,sx=tx*tx*(3-2*tx),sy=ty*ty*(3-2*ty);const a=T.MathUtils.lerp(hash(ix%scale,iy%scale),hash((ix+1)%scale,iy%scale),sx),b=T.MathUtils.lerp(hash(ix%scale,(iy+1)%scale),hash((ix+1)%scale,(iy+1)%scale),sx);return T.MathUtils.lerp(a,b,sy)};
- for(let y=0;y<size;y++)for(let x=0;x<size;x++){const n=noise(x,y,4)*.32+noise(x,y,16)*.25+noise(x,y,64)*.23+hash(x,y)*.2,pores=hash(x+97,y+19)>.986?.2:0,v=Math.round(190+n*64-pores*100),i=(y*size+x)*4;pixels.data[i]=v;pixels.data[i+1]=v;pixels.data[i+2]=v;pixels.data[i+3]=255}
+ // The three noise layers repeatedly sample the same periodic lattice.
+ const layers=[4,16,64].map(scale=>{
+  const lattice=new Float64Array(scale*scale);
+  for(let y=0;y<scale;y++)for(let x=0;x<scale;x++)lattice[y*scale+x]=hash(x,y);
+  return {scale,lattice};
+ });
+ const noise=(x,y,{scale,lattice})=>{
+  const gx=x/size*scale,gy=y/size*scale,ix=Math.floor(gx),iy=Math.floor(gy);
+  const tx=gx-ix,ty=gy-iy,sx=tx*tx*(3-2*tx),sy=ty*ty*(3-2*ty);
+  const x2=(ix+1)%scale,row=iy*scale,nextRow=((iy+1)%scale)*scale;
+  const a=T.MathUtils.lerp(lattice[row+ix],lattice[row+x2],sx);
+  const b=T.MathUtils.lerp(lattice[nextRow+ix],lattice[nextRow+x2],sx);
+  return T.MathUtils.lerp(a,b,sy);
+ };
+ for(let y=0;y<size;y++)for(let x=0;x<size;x++){const n=noise(x,y,layers[0])*.32+noise(x,y,layers[1])*.25+noise(x,y,layers[2])*.23+hash(x,y)*.2,pores=hash(x+97,y+19)>.986?.2:0,v=Math.round(190+n*64-pores*100),i=(y*size+x)*4;pixels.data[i]=v;pixels.data[i+1]=v;pixels.data[i+2]=v;pixels.data[i+3]=255}
  ctx.putImageData(pixels,0,0);const map=new T.CanvasTexture(canvas);map.wrapS=map.wrapT=T.RepeatWrapping;map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());return map;
 }
 const stoneGrain=mineralTexture(17),metalGrain=mineralTexture(71);
@@ -582,7 +595,8 @@ function drawBoundaryBump(now){
  const shift=phase<1 ? .22*Math.sin(phase*Math.PI*2)*(1-phase)**2 : 0;
  orbMat.uniforms.bumpOffset.value.copy(bumpDirection).multiplyScalar(shift);
 }
-const target=new T.Vector3(),look=new T.Vector3();function animate(now){requestAnimationFrame(animate);adjustRenderResolution(now,now-last);
+const target=new T.Vector3(),look=new T.Vector3(),blendedRotation=new T.Quaternion();
+function animate(now){requestAnimationFrame(animate);adjustRenderResolution(now,now-last);
  if(!document.hidden&&now-lastShadowUpdate>=(mobileRender?350:125)&&interiors.state.index<0){
   sun.shadow.needsUpdate=true;
   lastShadowUpdate=now;
@@ -606,7 +620,7 @@ if(inRoom){
  secret.move(player,dx,dz);
  canBump=!secret.exiting;
 }else if(secret.state.phase!=='falling'){
- if(templeAt(player.x,player.z,player.height)<0)lastHallPosition={...player};
+ if(templeAt(player.x,player.z,player.height)<0)Object.assign(lastHallPosition,player);
  if(velocity.lengthSq()>1e-12 || secret.state.phase==='lowering'||secret.state.phase==='opening')navigation.move(player,dx,dz,'player');
 }else canBump=false;
 checkBoundaryImpact(now,dx,dz,position.x-fromX,position.z-fromZ,canBump && input.lengthSq()>.04);
@@ -615,13 +629,13 @@ orb.position.x=player.x;orb.position.z=player.z;checkTemple();
 drawBoundaryBump(now);
 if(secret.exiting){orb.position.x=player.x;orb.position.z=player.z;visualHeight=player.height;velocity.set(0,0);keys.clear();stick.set(0,0);}
 visualHeight=secret.state.phase==='falling'?player.height:T.MathUtils.damp(visualHeight,player.height,12,dt);orb.position.y=visualHeight+FLOAT_HEIGHT+(reduced?0:Math.sin(t*1.7)*.06);if(entered){zoomBlend=reduced?zoomTarget:T.MathUtils.lerp(zoomBlend,zoomTarget,1-Math.exp(-11*dt));let u=(reduced?1:entranceEase((now-descent)/4500))*zoomBlend;target.set(orb.position.x*.65,20,orb.position.z+23);target.y+=.35;camera.position.lerpVectors(overviewPosition.set(0,105/Math.min(1,camera.aspect),1),target,u);look.set(orb.position.x*.7,.35,orb.position.z-5);camera.lookAt(look.multiplyScalar(u))}else{camera.position.set(0,105/Math.min(1,camera.aspect),1);camera.lookAt(0,0,0)}if(secret.state.phase==='falling'){const follow=T.MathUtils.smoothstep(secret.state.fall,0,1.4);camera.position.y+= (player.height-.35)*follow;look.y+=(player.height-.35)*follow;camera.lookAt(look);}if(secret.state.phase==='chamber'){camera.position.set(player.x*.45,-49,player.z+14);look.set(player.x*.5,-61,player.z-2);const portraitRoom=Math.min(1.8,Math.max(1,.82/camera.aspect));camera.position.sub(look).multiplyScalar(portraitRoom).add(look);camera.lookAt(look);scene.fog.density=.018;}
-if(templeTransfer){const amount=entranceEase(Math.max(0,(templeTransfer.elapsed-.45)/2));camera.position.lerpVectors(templeTransfer.camera.position,camera.position.clone(),amount);camera.quaternion.copy(templeTransfer.camera.quaternion.clone().slerp(camera.quaternion,amount));}
+if(templeTransfer){const amount=entranceEase(Math.max(0,(templeTransfer.elapsed-.45)/2));camera.position.lerpVectors(templeTransfer.camera.position,camera.position,amount);camera.quaternion.copy(blendedRotation.copy(templeTransfer.camera.quaternion).slerp(camera.quaternion,amount));}
 const tiltEnabled=entered&&!reduced&&!quickNav.active&&!panel.open&&finePointer.matches;
 smoothedTilt.lerp(tiltEnabled?mouseTilt:zeroTilt,1-Math.exp(-3*dt));
 let tiltScale=entered?zoomBlend*(reduced?1:entranceEase((now-descent)/4500)):0;
 const hoverLook=entered?frameLook.copy(look):frameLook.set(0,0,0);
 // Blend the underlying view first, then apply one continuous hover offset.
-if(homeReturn){homeReturn.elapsed+=dt;const u=reduced?1:entranceEase(homeReturn.elapsed/2.4);camera.position.lerpVectors(homeReturn.position,camera.position.clone(),u);camera.quaternion.copy(homeReturn.quaternion.clone().slerp(camera.quaternion,u));hoverLook.lerpVectors(homeReturn.look,hoverLook,u);tiltScale=T.MathUtils.lerp(homeReturn.scale,0,u);if(u>=1){homeReturn=null;$('#intro').classList.remove('returning');}}
+if(homeReturn){homeReturn.elapsed+=dt;const u=reduced?1:entranceEase(homeReturn.elapsed/2.4);camera.position.lerpVectors(homeReturn.position,camera.position,u);camera.quaternion.copy(blendedRotation.copy(homeReturn.quaternion).slerp(camera.quaternion,u));hoverLook.lerpVectors(homeReturn.look,hoverLook,u);tiltScale=T.MathUtils.lerp(homeReturn.scale,0,u);if(u>=1){homeReturn=null;$('#intro').classList.remove('returning');}}
 hoverBase.position.copy(camera.position);hoverBase.quaternion.copy(camera.quaternion);hoverBase.look.copy(hoverLook);hoverBase.scale=tiltScale;
 camera.position.x+=smoothedTilt.x*T.MathUtils.lerp(.12,.9,tiltScale);
 camera.position.y+=smoothedTilt.y*.65*tiltScale;
